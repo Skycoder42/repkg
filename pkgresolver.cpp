@@ -79,23 +79,26 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 		pkgInfos.remove(pkg);
 
 	//save the infos
-	auto keys = pkgInfos.keys();
-	_settings->beginWriteArray(QStringLiteral("pkgstate"), pkgInfos.size());
-	for(auto i = 0; i < pkgInfos.size(); i++) {
-		_settings->setArrayIndex(i);
-		_settings->setValue(QStringLiteral("name"), keys[i]);
-		_settings->setValue(QStringLiteral("reason"), (QStringList)pkgInfos[keys[i]].toList());
-	}
-	_settings->endArray();
+	writePkgs(pkgInfos);
 }
 
-void PkgResolver::clear()
+void PkgResolver::clear(const QStringList &pkgs)
 {
 	if(!isRoot())
 		throw QStringLiteral("Must be run as root to clear packages!");
 
-	_settings->remove(QStringLiteral("pkgstate"));
-	qDebug() << "Cleared all pending package rebuilds";
+	if(pkgs.isEmpty()) {
+		_settings->remove(QStringLiteral("pkgstate"));
+		qDebug() << "Cleared all pending package rebuilds";
+	} else {
+		auto pkgInfos = readPkgs();
+		auto save = false;
+		foreach(auto pkg, pkgs)
+			save = pkgInfos.remove(pkg) || save;
+		if(save)
+			writePkgs(pkgInfos);
+		qDebug() << "Cleared specified pending package rebuilds";
+	}
 }
 
 PkgResolver::PkgInfos PkgResolver::readPkgs() const
@@ -109,4 +112,17 @@ PkgResolver::PkgInfos PkgResolver::readPkgs() const
 	}
 	_settings->endArray();
 	return pkgs;
+}
+
+void PkgResolver::writePkgs(const PkgInfos &pkgInfos)
+{
+	auto keys = pkgInfos.keys();
+	_settings->remove(QStringLiteral("pkgstate"));
+	_settings->beginWriteArray(QStringLiteral("pkgstate"), pkgInfos.size());
+	for(auto i = 0; i < pkgInfos.size(); i++) {
+		_settings->setArrayIndex(i);
+		_settings->setValue(QStringLiteral("name"), keys[i]);
+		_settings->setValue(QStringLiteral("reason"), (QStringList)pkgInfos[keys[i]].toList());
+	}
+	_settings->endArray();
 }

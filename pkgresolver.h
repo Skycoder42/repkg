@@ -17,7 +17,7 @@ public:
 	QStringList listDetailPkgs() const;
 
 	void updatePkgs(const QStringList &pkgs, RuleController *rules);
-	void clear();
+	void clear(const QStringList &pkgs);
 
 private:
 	typedef QMap<QString, QSet<QString>> PkgInfos;
@@ -25,6 +25,7 @@ private:
 	QSettings *_settings;
 
 	PkgInfos readPkgs() const;
+	void writePkgs(const PkgInfos &pkgInfos);
 };
 
 #endif // PKGRESOLVER_H

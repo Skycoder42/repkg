@@ -43,8 +43,7 @@ void CliController::parseCli()
 			testEmpty(args);
 			list(detail);
 		} else if(command == QStringLiteral("clear")) {
-			testEmpty(args);
-			clear();
+			clear(args);
 		} else if(command == QStringLiteral("frontend")) {
 			if(args.isEmpty())
 				frontend();
@@ -67,7 +66,8 @@ void CliController::parseCli()
 
 void CliController::rebuild()
 {
-
+	_runner->run(_resolver->listPkgs());
+	Q_UNREACHABLE();
 }
 
 void CliController::update(const QStringList &pks)
@@ -91,9 +91,9 @@ void CliController::list(bool detail)
 	qApp->quit();
 }
 
-void CliController::clear()
+void CliController::clear(const QStringList &pkgs)
 {
-	_resolver->clear();
+	_resolver->clear(pkgs);
 	qApp->quit();
 }
 
@@ -117,7 +117,7 @@ void CliController::printArgs()
 								"\t%1 update [packages...]: Mark packages as updated\n"
 								"\t%1 create <package> [dependencies...]: Create a rule for a package and it's dependencies\n"
 								"\t%1 list [detail]: List all packages that need to be rebuilt\n"
-								"\t%1 clear: Clear all packages that are marked to be rebuilt\n"
+								"\t%1 clear [pkgs...]: Clear all packages that are marked to be rebuilt, or only the ones specified as parameters\n"
 								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n")
 							 .arg(QCoreApplication::applicationName());
 	qInfo() << qUtf8Printable(usage);

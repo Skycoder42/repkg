@@ -11,6 +11,8 @@ public:
 
 	QStringList frontend() const;
 	void setFrontend(const QStringList &cli);
+
+	void run(const QStringList &pkgs);
 };
 
 #endif // PACMANRUNNER_H
