@@ -24,7 +24,7 @@ void RuleController::createRule(const QString &pkg, const QStringList &deps)
 
 	QFile ruleFile(path.absoluteFilePath(pkg + QStringLiteral(".rule")));
 	if(!ruleFile.open(QIODevice::WriteOnly | QIODevice::Text))
-		throw ruleFile.errorString();
+		throw QStringLiteral("Failed to create rule file with error: %1").arg(ruleFile.errorString());
 
 	ruleFile.write(deps.join(QStringLiteral(" ")).toUtf8());
 	ruleFile.close();

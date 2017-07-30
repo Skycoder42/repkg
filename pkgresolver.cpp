@@ -39,14 +39,18 @@ QStringList PkgResolver::listDetailPkgs() const
 	return pkgs;
 }
 
-bool PkgResolver::clear()
+void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 {
-	if(_settings->isWritable()) {
-		_settings->remove(QStringLiteral("pkgstate"));
-		qDebug() << "Cleared all pending package rebuilds";
-		return true;
-	} else {
-		qWarning() << "Must be run as root to clear packages!";
-		return false;
-	}
+	if(!isRoot())
+		throw QStringLiteral("Must be run as root to update packages!");
+
+}
+
+void PkgResolver::clear()
+{
+	if(!isRoot())
+		throw QStringLiteral("Must be run as root to clear packages!");
+
+	_settings->remove(QStringLiteral("pkgstate"));
+	qDebug() << "Cleared all pending package rebuilds";
 }

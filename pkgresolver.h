@@ -1,6 +1,8 @@
 #ifndef PKGRESOLVER_H
 #define PKGRESOLVER_H
 
+#include "rulecontroller.h"
+
 #include <QObject>
 #include <QSettings>
 
@@ -14,7 +16,8 @@ public:
 	QStringList listPkgs() const;
 	QStringList listDetailPkgs() const;
 
-	bool clear();
+	void updatePkgs(const QStringList &pkgs, RuleController *rules);
+	void clear();
 
 private:
 	QSettings *_settings;

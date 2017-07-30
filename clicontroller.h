@@ -32,6 +32,8 @@ private:
 	RuleController *_rules;
 	PkgResolver *_resolver;
 	PacmanRunner *_runner;
+
+	bool _showHelp;
 };
 
 #endif // CLICONTROLLER_H

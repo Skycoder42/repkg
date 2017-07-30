@@ -7,7 +7,8 @@ CliController::CliController(QObject *parent) :
 	QObject(parent),
 	_rules(new RuleController(this)),
 	_resolver(new PkgResolver(this)),
-	_runner(new PacmanRunner(this))
+	_runner(new PacmanRunner(this)),
+	_showHelp(false)
 {}
 
 void CliController::parseCli()
@@ -28,8 +29,10 @@ void CliController::parseCli()
 		} else if(command == QStringLiteral("update"))
 			update(args);
 		else if(command == QStringLiteral("create")) {
-			if(args.isEmpty())
+			if(args.isEmpty()) {
+				_showHelp = true;
 				throw QStringLiteral("Expected package name as first argument for create");
+			}
 			create(args.takeFirst(), args);
 		} else if(command == QStringLiteral("list")) {
 			auto detail = false;
@@ -50,11 +53,14 @@ void CliController::parseCli()
 		} else if(command == QStringLiteral("help")) {
 			printArgs();
 			qApp->quit();
-		} else
+		} else {
+			_showHelp = true;
 			throw QStringLiteral("Invalid arguments!");
+		}
 	} catch(QString &e) {
-		qCritical() << qUtf8Printable(e) << "\n\n";
-		printArgs();
+		qCritical() << qUtf8Printable(e);
+		if(_showHelp)
+			printArgs();
 		qApp->exit(EXIT_FAILURE);
 	}
 }
@@ -66,19 +72,14 @@ void CliController::rebuild()
 
 void CliController::update(const QStringList &pks)
 {
-
+	_resolver->updatePkgs(pks, _rules);
+	qApp->quit();
 }
 
 void CliController::create(const QString &pkg, const QStringList &rules)
 {
-	try {
-		_rules->createRule(pkg, rules);
-		qApp->quit();
-	} catch (QString &s) {
-		qCritical() << "Failed to create rule file with error:"
-					<< qUtf8Printable(s);
-		qApp->exit(EXIT_FAILURE);
-	}
+	_rules->createRule(pkg, rules);
+	qApp->quit();
 }
 
 void CliController::list(bool detail)
@@ -92,10 +93,8 @@ void CliController::list(bool detail)
 
 void CliController::clear()
 {
-	if(_resolver->clear())
-		qApp->quit();
-	else
-		qApp->exit(EXIT_FAILURE);
+	_resolver->clear();
+	qApp->quit();
 }
 
 void CliController::frontend()
@@ -126,6 +125,8 @@ void CliController::printArgs()
 
 void CliController::testEmpty(const QStringList &args)
 {
-	if(!args.isEmpty())
+	if(!args.isEmpty()) {
+		_showHelp = true;
 		throw QStringLiteral("Unexpected arguments after command!");
+	}
 }
