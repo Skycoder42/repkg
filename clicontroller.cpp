@@ -116,7 +116,7 @@ void CliController::printArgs()
 								"\t%1 [rebuild]: Build all packages that need a rebuild\n"
 								"\t%1 update [packages...]: Mark packages as updated\n"
 								"\t%1 create <package> [dependencies...]: Create a rule for a package and it's dependencies\n"
-								"\t%1 list: List all packages that need to be rebuilt\n"
+								"\t%1 list [detail]: List all packages that need to be rebuilt\n"
 								"\t%1 clear: Clear all packages that are marked to be rebuilt\n"
 								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n")
 							 .arg(QCoreApplication::applicationName());

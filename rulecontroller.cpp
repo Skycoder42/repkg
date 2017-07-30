@@ -31,9 +31,18 @@ void RuleController::createRule(const QString &pkg, const QStringList &deps)
 	qDebug() << "Created rule for" << qUtf8Printable(pkg);
 }
 
-void RuleController::readRules()
+QStringList RuleController::analyze(const QString &pkg) const
+{
+	if(_rules.isEmpty())
+		readRules();
+	return _rules.values(pkg);
+}
+
+void RuleController::readRules() const
 {
 	QList<QDir> paths = {userPath(), rootPath()};
+
+	QMultiHash<QString, QString> ruleBase;
 
 	foreach(auto path, paths) {
 		QDir dir(path);
@@ -41,7 +50,7 @@ void RuleController::readRules()
 		dir.setNameFilters({QStringLiteral("*.rule")});
 		foreach(auto fileInfo, dir.entryInfoList()) {
 			auto name = fileInfo.completeBaseName();
-			if(_rules.contains(name))
+			if(ruleBase.contains(name))
 				continue;
 
 			QFile file(fileInfo.absoluteFilePath());
@@ -54,8 +63,13 @@ void RuleController::readRules()
 			auto str = QString::fromUtf8(file.readAll());
 			auto pkgs = str.split(QRegularExpression(QStringLiteral("\\s")));
 			foreach (auto pkg, pkgs)
-				_rules.insert(name, pkg);
+				ruleBase.insert(name, pkg);
 			file.close();
 		}
 	}
+
+	//invert rules for easier evaluation
+	_rules.clear();
+	for(auto it = ruleBase.begin(); it != ruleBase.end(); it++)
+		_rules.insert(it.value(), it.key());
 }

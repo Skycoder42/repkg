@@ -20,7 +20,11 @@ public:
 	void clear();
 
 private:
+	typedef QHash<QString, QSet<QString>> PkgInfos;
+
 	QSettings *_settings;
+
+	PkgInfos readPkgs() const;
 };
 
 #endif // PKGRESOLVER_H

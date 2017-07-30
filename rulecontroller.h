@@ -14,10 +14,12 @@ public:
 
 	void createRule(const QString &pkg, const QStringList &deps);
 
-private:
-	QMultiHash<QString, QString> _rules;
+	QStringList analyze(const QString &pkg) const;
 
-	void readRules();
+private:
+	mutable QMultiHash<QString, QString> _rules;
+
+	void readRules() const;
 };
 
 #endif // RULECONTROLLER_H

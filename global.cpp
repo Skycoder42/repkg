@@ -5,17 +5,23 @@
 
 bool global::isRoot()
 {
-	return ::geteuid() == 0;
+	return ::getuid() == 0;
 }
 
 QDir global::userPath()
 {
-	QDir dir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-	if(dir.mkpath(QStringLiteral("rules")) &&
-	   dir.cd(QStringLiteral("rules")))
-		return dir;
+	auto user = qgetenv("SUDO_USER");
+	if(user.isEmpty())
+		user = qgetenv("USER");//TODO get username with function?
 
-	return QDir();
+	QDir dir = QStringLiteral("/home/%1/.config/%2/rules")
+			   .arg(QString::fromUtf8(user))
+			   .arg(QCoreApplication::applicationName());
+	dir.mkpath(QStringLiteral("."));
+	if(dir.exists())
+		return dir;
+	else
+		return QDir();
 }
 
 QDir global::rootPath()
