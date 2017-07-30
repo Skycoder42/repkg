@@ -1,6 +1,9 @@
 #ifndef CLICONTROLLER_H
 #define CLICONTROLLER_H
 
+#include "pkgresolver.h"
+#include "rulecontroller.h"
+
 #include <QObject>
 
 class CliController : public QObject
@@ -13,17 +16,20 @@ public:
 public slots:
 	void parseCli();
 
-signals:
+private:
 	void rebuild();
 	void update(const QStringList &pks);
 	void create(const QString &pkg, const QStringList &rules);
-	void list();
+	void list(bool detail);
 	void clear();
-	void frontend(const QString &frontend);
-
-private:
-	void testEmpty(const QStringList &args);
+	void frontend();
+	void setFrontend(const QStringList &frontend);
 	void printArgs();
+
+	void testEmpty(const QStringList &args);
+
+	RuleController *_rules;
+	PkgResolver *_resolver;
 };
 
 #endif // CLICONTROLLER_H

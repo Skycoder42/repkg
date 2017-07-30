@@ -1,29 +1,34 @@
+TEMPLATE = app
+
 QT += core
 QT -= gui
 
-CONFIG += c++11
-
-TARGET = repkg
-CONFIG += console
+CONFIG += c++11 console warning_clean exceptions
 CONFIG -= app_bundle
 
-TEMPLATE = app
+TARGET = repkg
+VERSION = 1.0.0
 
-SOURCES += main.cpp \
-    clicontroller.cpp \
-    rulecontroller.cpp
+RC_ICONS += ./icons/repkg.ico
+QMAKE_TARGET_COMPANY = "Skycoder42"
+QMAKE_TARGET_PRODUCT = $$TARGET
+QMAKE_TARGET_DESCRIPTION = $$TARGET
+QMAKE_TARGET_COPYRIGHT = "Felix Barz"
+QMAKE_TARGET_BUNDLE_PREFIX = de.skycoder42
 
-# The following define makes your compiler emit warnings if you use
-# any feature of Qt which as been marked deprecated (the exact warnings
-# depend on your compiler). Please consult the documentation of the
-# deprecated API in order to know how to port your code away from it.
-DEFINES += QT_DEPRECATED_WARNINGS
+DEFINES += "TARGET=\\\"$$TARGET\\\""
+DEFINES += "VERSION=\\\"$$VERSION\\\""
+DEFINES += "COMPANY=\"\\\"$$QMAKE_TARGET_COMPANY\\\"\""
+DEFINES += "BUNDLE=\"\\\"$$QMAKE_TARGET_BUNDLE_PREFIX\\\"\""
 
-# You can also make your code fail to compile if you use deprecated APIs.
-# In order to do so, uncomment the following line.
-# You can also select to disable deprecated APIs only up to a certain version of Qt.
-#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+DEFINES += QT_DEPRECATED_WARNINGS QT_ASCII_CAST_WARNINGS
 
 HEADERS += \
-    clicontroller.h \
-    rulecontroller.h
+	clicontroller.h \
+	rulecontroller.h \
+	pkgresolver.h
+
+SOURCES += main.cpp \
+	clicontroller.cpp \
+	rulecontroller.cpp \
+	pkgresolver.cpp

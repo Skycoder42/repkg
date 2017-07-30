@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QHash>
+#include <QDir>
 
 class RuleController : public QObject
 {
@@ -11,13 +12,15 @@ class RuleController : public QObject
 public:
 	explicit RuleController(QObject *parent = nullptr);
 
-public slots:
-	void readRules();
-
-signals:
+	void createRule(const QString &pkg, const QStringList &deps);
 
 private:
 	QMultiHash<QString, QString> _rules;
+
+	void readRules();
+
+	QDir userPath() const;
+	QDir rootPath() const;
 };
 
 #endif // RULECONTROLLER_H
