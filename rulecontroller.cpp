@@ -1,4 +1,5 @@
 #include "rulecontroller.h"
+#include "global.h"
 #include <QCoreApplication>
 #include <QDir>
 #include <QStandardPaths>
@@ -6,8 +7,7 @@
 #include <QTextStream>
 #include <QRegularExpression>
 #include <QDebug>
-
-#include <unistd.h>
+using namespace global;
 
 RuleController::RuleController(QObject *parent) :
 	QObject(parent),
@@ -17,7 +17,7 @@ RuleController::RuleController(QObject *parent) :
 void RuleController::createRule(const QString &pkg, const QStringList &deps)
 {
 	QDir path;
-	if(::geteuid() == 0)
+	if(isRoot())
 		path = rootPath();
 	else
 		path = userPath();
@@ -58,26 +58,4 @@ void RuleController::readRules()
 			file.close();
 		}
 	}
-}
-
-QDir RuleController::userPath() const
-{
-	QDir dir = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-	if(dir.mkpath(QStringLiteral("rules")) &&
-	   dir.cd(QStringLiteral("rules")))
-		return dir;
-
-	return QDir();
-}
-
-QDir RuleController::rootPath() const
-{
-	QDir dir = QStringLiteral("/etc/%1/rules")
-			   .arg(QCoreApplication::applicationName());
-	if(::geteuid() == 0)
-		dir.mkpath(QStringLiteral("."));
-	if(dir.exists())
-		return dir;
-	else
-		return QDir();
 }

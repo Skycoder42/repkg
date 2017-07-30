@@ -14,10 +14,7 @@ public:
 	QStringList listPkgs() const;
 	QStringList listDetailPkgs() const;
 
-	QStringList frontend() const;
-	void setFrontend(const QStringList &cli);
-
-	void clear();
+	bool clear();
 
 private:
 	QSettings *_settings;

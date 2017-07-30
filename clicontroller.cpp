@@ -6,7 +6,8 @@
 CliController::CliController(QObject *parent) :
 	QObject(parent),
 	_rules(new RuleController(this)),
-	_resolver(new PkgResolver(this))
+	_resolver(new PkgResolver(this)),
+	_runner(new PacmanRunner(this))
 {}
 
 void CliController::parseCli()
@@ -91,19 +92,21 @@ void CliController::list(bool detail)
 
 void CliController::clear()
 {
-	_resolver->clear();
-	qApp->quit();
+	if(_resolver->clear())
+		qApp->quit();
+	else
+		qApp->exit(EXIT_FAILURE);
 }
 
 void CliController::frontend()
 {
-	qInfo() << qUtf8Printable(_resolver->frontend().join(QStringLiteral(" ")));
+	qInfo() << qUtf8Printable(_runner->frontend().join(QStringLiteral(" ")));
 	qApp->quit();
 }
 
 void CliController::setFrontend(const QStringList &frontend)
 {
-	_resolver->setFrontend(frontend);
+	_runner->setFrontend(frontend);
 	qApp->quit();
 }
 

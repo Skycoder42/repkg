@@ -1,11 +1,14 @@
 #include "pkgresolver.h"
+#include "global.h"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QStandardPaths>
+using namespace global;
 
 PkgResolver::PkgResolver(QObject *parent) :
 	QObject(parent),
-	_settings(new QSettings(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + QStringLiteral("/state.conf"),
+	_settings(new QSettings(rootPath().absoluteFilePath(QStringLiteral("%1/state.conf")),
 							QSettings::IniFormat,
 							this))
 {}
@@ -36,31 +39,14 @@ QStringList PkgResolver::listDetailPkgs() const
 	return pkgs;
 }
 
-QStringList PkgResolver::frontend() const
+bool PkgResolver::clear()
 {
-	if(_settings->contains(QStringLiteral("frontend")))
-	   return _settings->value(QStringLiteral("frontend")).toStringList();
-	else {
-		QList<QStringList> defaultFn = {
-			{QStringLiteral("pacaur"), QStringLiteral("--rebuild")},
-			{QStringLiteral("yaourt")}
-		};
-		foreach(auto fn, defaultFn) {
-			if(!QStandardPaths::findExecutable(fn.first()).isNull())
-				return fn;
-		}
-		return {QStringLiteral("pacman")};
+	if(_settings->isWritable()) {
+		_settings->remove(QStringLiteral("pkgstate"));
+		qDebug() << "Cleared all pending package rebuilds";
+		return true;
+	} else {
+		qWarning() << "Must be run as root to clear packages!";
+		return false;
 	}
-}
-
-void PkgResolver::setFrontend(const QStringList &cli)
-{
-	_settings->setValue(QStringLiteral("frontend"), cli);
-	qDebug() << "Updated pacman frontend to" << cli.first();
-}
-
-void PkgResolver::clear()
-{
-	_settings->remove(QStringLiteral("pkgstate"));
-	qDebug() << "Cleared all pending package rebuilds";
 }

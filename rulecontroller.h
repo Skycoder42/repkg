@@ -18,9 +18,6 @@ private:
 	QMultiHash<QString, QString> _rules;
 
 	void readRules();
-
-	QDir userPath() const;
-	QDir rootPath() const;
 };
 
 #endif // RULECONTROLLER_H

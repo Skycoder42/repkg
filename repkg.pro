@@ -26,9 +26,13 @@ DEFINES += QT_DEPRECATED_WARNINGS QT_ASCII_CAST_WARNINGS
 HEADERS += \
 	clicontroller.h \
 	rulecontroller.h \
-	pkgresolver.h
+	pkgresolver.h \
+    pacmanrunner.h \
+    global.h
 
 SOURCES += main.cpp \
 	clicontroller.cpp \
 	rulecontroller.cpp \
-	pkgresolver.cpp
+	pkgresolver.cpp \
+    pacmanrunner.cpp \
+    global.cpp

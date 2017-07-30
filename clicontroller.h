@@ -3,6 +3,7 @@
 
 #include "pkgresolver.h"
 #include "rulecontroller.h"
+#include "pacmanrunner.h"
 
 #include <QObject>
 
@@ -30,6 +31,7 @@ private:
 
 	RuleController *_rules;
 	PkgResolver *_resolver;
+	PacmanRunner *_runner;
 };
 
 #endif // CLICONTROLLER_H
