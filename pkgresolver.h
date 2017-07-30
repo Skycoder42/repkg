@@ -20,7 +20,7 @@ public:
 	void clear();
 
 private:
-	typedef QHash<QString, QSet<QString>> PkgInfos;
+	typedef QMap<QString, QSet<QString>> PkgInfos;
 
 	QSettings *_settings;
 

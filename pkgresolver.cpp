@@ -9,7 +9,7 @@ using namespace global;
 
 PkgResolver::PkgResolver(QObject *parent) :
 	QObject(parent),
-	_settings(new QSettings(rootPath().absoluteFilePath(QStringLiteral("state.conf")),
+	_settings(new QSettings(rootPath().absoluteFilePath(QStringLiteral("../state.conf")),
 							QSettings::IniFormat,
 							this))
 {}
@@ -30,9 +30,11 @@ QStringList PkgResolver::listDetailPkgs() const
 
 	auto pkgInfos = readPkgs();
 	for(auto it = pkgInfos.constBegin(); it != pkgInfos.constEnd(); it++) {
+		auto lst = it.value().toList();
+		std::sort(lst.begin(), lst.end());
 		pkgs.append(QStringLiteral("%1| %2")
 					.arg(it.key(), -30)
-					.arg(it.value().toList().join(QStringLiteral(", "))));
+					.arg(lst.join(QStringLiteral(", "))));
 	}
 	return pkgs;
 }
