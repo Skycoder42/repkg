@@ -1,0 +1,10 @@
+[Trigger]
+Operation=Upgrade
+Type=Package
+Target=*
+
+[Action]
+Description=Check for packages that need to be rebuild
+Exec=/usr/share/libalpm/scripts/repkg.sh
+When=PostTransaction
+NeedsTargets

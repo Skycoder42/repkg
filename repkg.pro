@@ -36,3 +36,8 @@ SOURCES += main.cpp \
 	pkgresolver.cpp \
     pacmanrunner.cpp \
     global.cpp
+
+DISTFILES += \
+    README.md \
+    repkg.sh \
+    repkg.hook

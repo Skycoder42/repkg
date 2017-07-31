@@ -85,9 +85,12 @@ void CliController::create(const QString &pkg, const QStringList &rules)
 void CliController::list(bool detail)
 {
 	if(detail)
-		qInfo() << qUtf8Printable(_resolver->listDetailPkgs().join(QStringLiteral("\n"))) << "\n";
-	else
-		qInfo() << qUtf8Printable(_resolver->listPkgs().join(QStringLiteral(" ")));
+		qInfo() << qUtf8Printable(_resolver->listDetailPkgs());
+	else {
+		auto list = _resolver->listPkgs();
+		if(!list.isEmpty())
+			qInfo() << qUtf8Printable(list.join(QStringLiteral(" ")));
+	}
 	qApp->quit();
 }
 

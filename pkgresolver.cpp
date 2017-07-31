@@ -22,7 +22,7 @@ QStringList PkgResolver::listPkgs() const
 	return pkgs;
 }
 
-QStringList PkgResolver::listDetailPkgs() const
+QString PkgResolver::listDetailPkgs() const
 {
 	QStringList pkgs;
 	pkgs.append(QStringLiteral("%1| Triggered by").arg(QStringLiteral(" Package Update"), -30));
@@ -36,7 +36,7 @@ QStringList PkgResolver::listDetailPkgs() const
 					.arg(it.key(), -30)
 					.arg(lst.join(QStringLiteral(", "))));
 	}
-	return pkgs;
+	return pkgs.join(QLatin1Char('\n'));
 }
 
 void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)

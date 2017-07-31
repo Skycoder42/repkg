@@ -14,7 +14,7 @@ public:
 	explicit PkgResolver(QObject *parent = nullptr);
 
 	QStringList listPkgs() const;
-	QStringList listDetailPkgs() const;
+	QString listDetailPkgs() const;
 
 	void updatePkgs(const QStringList &pkgs, RuleController *rules);
 	void clear(const QStringList &pkgs);
