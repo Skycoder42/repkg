@@ -81,7 +81,7 @@ void CliController::parseCli()
 void CliController::rebuild()
 {
 	_runner->run(_resolver->listPkgs());
-	Q_UNREACHABLE();
+	qApp->quit();
 }
 
 void CliController::update(const QStringList &pks)

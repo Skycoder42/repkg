@@ -37,6 +37,13 @@ void PacmanRunner::setFrontend(const QStringList &cli)
 
 void PacmanRunner::run(const QStringList &pkgs)
 {
+	if(pkgs.isEmpty()) {
+		qWarning() << "No packages need to be rebuilt";
+		return;
+	}
+
+	qDebug() << "Rebulding packages:" << pkgs;
+
 	auto cli = frontend();
 	cli[0] = QStandardPaths::findExecutable(cli[0]);
 	if(cli[0].isNull())
