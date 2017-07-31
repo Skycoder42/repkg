@@ -27,17 +27,22 @@ HEADERS += \
 	clicontroller.h \
 	rulecontroller.h \
 	pkgresolver.h \
-    pacmanrunner.h \
-    global.h
+	pacmanrunner.h \
+	global.h
 
 SOURCES += main.cpp \
 	clicontroller.cpp \
 	rulecontroller.cpp \
 	pkgresolver.cpp \
-    pacmanrunner.cpp \
-    global.cpp
+	pacmanrunner.cpp \
+	global.cpp
 
 DISTFILES += \
-    README.md \
-    repkg.sh \
-    repkg.hook
+	README.md \
+	repkg.sh \
+	repkg.hook
+
+unix {
+	target.path = $$[QT_INSTALL_BINS]
+	INSTALLS += target
+}
