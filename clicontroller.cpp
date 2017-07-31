@@ -3,6 +3,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 
+bool CliController::_verbose = false;
+
 CliController::CliController(QObject *parent) :
 	QObject(parent),
 	_rules(new RuleController(this)),
@@ -11,11 +13,23 @@ CliController::CliController(QObject *parent) :
 	_showHelp(false)
 {}
 
+bool CliController::verbose()
+{
+	return _verbose;
+}
+
 void CliController::parseCli()
 {
 	try {
 		auto args = QCoreApplication::arguments();
 		args.removeFirst();
+
+		if(!args.isEmpty() &&
+		   (args.first() == QStringLiteral("-v") ||
+			args.first() == QStringLiteral("--verbose"))) {
+			_verbose = true;
+			args.removeFirst();
+		}
 
 		QString command;
 		if(!args.isEmpty())
@@ -114,14 +128,15 @@ void CliController::setFrontend(const QStringList &frontend)
 
 void CliController::printArgs()
 {
-	auto usage = QStringLiteral("Usage: %1 [operation] [...]\n"
+	auto usage = QStringLiteral("Usage: %1 [-v|--verbose] [operation] [...]\n"
 								"Operations:\n"
 								"\t%1 [rebuild]: Build all packages that need a rebuild\n"
 								"\t%1 update [packages...]: Mark packages as updated\n"
 								"\t%1 create <package> [dependencies...]: Create a rule for a package and it's dependencies\n"
 								"\t%1 list [detail]: List all packages that need to be rebuilt\n"
 								"\t%1 clear [pkgs...]: Clear all packages that are marked to be rebuilt, or only the ones specified as parameters\n"
-								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n")
+								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n\n"
+								"Pass -v as additional parameter to enable verbose output.")
 							 .arg(QCoreApplication::applicationName());
 	qInfo() << qUtf8Printable(usage);
 }

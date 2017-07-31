@@ -14,6 +14,8 @@ class CliController : public QObject
 public:
 	explicit CliController(QObject *parent = nullptr);
 
+	static bool verbose();
+
 public slots:
 	void parseCli();
 
@@ -34,6 +36,7 @@ private:
 	PacmanRunner *_runner;
 
 	bool _showHelp;
+	static bool _verbose;
 };
 
 #endif // CLICONTROLLER_H
