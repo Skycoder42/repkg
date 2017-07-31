@@ -23,6 +23,9 @@ int main(int argc, char *argv[])
 void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
 	auto message = qFormatLogMessage(type, context, msg);
+
+	QT_WARNING_PUSH
+	QT_WARNING_DISABLE_GCC("-Wimplicit-fallthrough")
 	switch (type) {
 	case QtDebugMsg:
 		if(!CliController::verbose())
@@ -38,6 +41,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext &context, const QSt
 	default:
 		break;
 	}
+	QT_WARNING_POP
 
 	if(type == QtFatalMsg)
 		abort();
