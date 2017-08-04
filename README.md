@@ -28,9 +28,17 @@ repkg create <package> [dependencies...]
 ```
 `package` is the AUR package that should be rebuild, when one of the given `dependencies` is updated to a newer versions. You can also create rules directly by creating a rule file in `~/.config/repkg/rules`, with the package name beeing the filename (i.e. `package.rule`) and the content beeing the dependencies, space seperated.
 
-When updating packages via pacman (or any frontend), rebuilds are automatically detected. You will see a message with all packages that need rebuilds at the end. You can also run `repkg list detail` to show all packages that need rebuilds.
+When updating packages via pacman (or any frontend), rebuilds are automatically detected. You will see a message with all packages that need rebuilds at the end. You can also run 
+```
+repkg list detail
+```
+to show all packages that need rebuilds.
 
-To actually rebuild them, simply call `repkg`. This will start the frontend of your choice (e.g. pacaur, yaourt, ...) and rebuild all required packages. 
+To actually rebuild them, simply run
+```
+repkg
+```
+This will start the frontend of your choice (e.g. pacaur, yaourt, ...) and rebuild all required packages. 
 
 ### Package Providers
 Simply add a rule file to your PKGBUILD, and install it to `/etc/repkg/rules`. Assuming your package is name `my-pkg` and should be rebuild when `dep-a` or `dep-b` is updated, the file must be named `my-pkg.rule` and contain:
