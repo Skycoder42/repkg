@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QHash>
 #include <QDir>
+#include <QMap>
 
 class RuleController : public QObject
 {
@@ -14,10 +15,14 @@ public:
 
 	void createRule(const QString &pkg, const QStringList &deps);
 
+	QString listRules() const;
+
 	QStringList analyze(const QString &pkg) const;
 
 private:
+	mutable QMap<QString, QString> _ruleInfos;
 	mutable QMultiHash<QString, QString> _rules;
+
 
 	void readRules() const;
 };

@@ -24,6 +24,7 @@ private:
 	void update(const QStringList &pks);
 	void create(const QString &pkg, const QStringList &rules);
 	void list(bool detail);
+	void listRules();
 	void clear(const QStringList &pkgs);
 	void frontend();
 	void setFrontend(const QStringList &frontend);

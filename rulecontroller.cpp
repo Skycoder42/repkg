@@ -31,6 +31,23 @@ void RuleController::createRule(const QString &pkg, const QStringList &deps)
 	qDebug() << "Created rule for" << qUtf8Printable(pkg);
 }
 
+QString RuleController::listRules() const
+{
+	if(_rules.isEmpty())
+		readRules();
+
+	QStringList pkgs;
+	pkgs.append(QStringLiteral("%1| Rule file").arg(QStringLiteral(" Package"), -30));
+	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49)); //TODO get console width
+
+	for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
+		pkgs.append(QStringLiteral("%1| %2")
+					.arg(it.key(), -30)
+					.arg(it.value()));
+	}
+	return pkgs.join(QLatin1Char('\n'));
+}
+
 QStringList RuleController::analyze(const QString &pkg) const
 {
 	if(_rules.isEmpty())
@@ -42,6 +59,8 @@ void RuleController::readRules() const
 {
 	QList<QDir> paths = {userPath(), rootPath()};
 
+	_ruleInfos.clear();
+	_rules.clear();
 	QMultiHash<QString, QString> ruleBase;
 
 	foreach(auto path, paths) {
@@ -61,15 +80,16 @@ void RuleController::readRules() const
 			}
 
 			auto str = QString::fromUtf8(file.readAll());
+			file.close();
 			auto pkgs = str.split(QRegularExpression(QStringLiteral("\\s")));
+
+			_ruleInfos.insert(name, fileInfo.absoluteFilePath());
 			foreach (auto pkg, pkgs)
 				ruleBase.insert(name, pkg);
-			file.close();
 		}
 	}
 
 	//invert rules for easier evaluation
-	_rules.clear();
 	for(auto it = ruleBase.begin(); it != ruleBase.end(); it++)
 		_rules.insert(it.value(), it.key());
 }

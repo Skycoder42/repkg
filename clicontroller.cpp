@@ -56,6 +56,9 @@ void CliController::parseCli()
 			}
 			testEmpty(args);
 			list(detail);
+		} else if(command == QStringLiteral("rules")) {
+			testEmpty(args);
+			listRules();
 		} else if(command == QStringLiteral("clear")) {
 			clear(args);
 		} else if(command == QStringLiteral("frontend")) {
@@ -71,7 +74,7 @@ void CliController::parseCli()
 			throw QStringLiteral("Invalid arguments!");
 		}
 	} catch(QString &e) {
-		qCritical() << qUtf8Printable(e);
+		qCritical().noquote() << e;
 		if(_showHelp)
 			printArgs();
 		qApp->exit(EXIT_FAILURE);
@@ -99,12 +102,18 @@ void CliController::create(const QString &pkg, const QStringList &rules)
 void CliController::list(bool detail)
 {
 	if(detail)
-		qInfo() << qUtf8Printable(_resolver->listDetailPkgs());
+		qInfo().noquote() << _resolver->listDetailPkgs();
 	else {
 		auto list = _resolver->listPkgs();
 		if(!list.isEmpty())
-			qInfo() << qUtf8Printable(list.join(QStringLiteral(" ")));
+			qInfo().noquote() << list.join(QStringLiteral(" "));
 	}
+	qApp->quit();
+}
+
+void CliController::listRules()
+{
+	qInfo().noquote() << _rules->listRules();
 	qApp->quit();
 }
 
@@ -116,7 +125,7 @@ void CliController::clear(const QStringList &pkgs)
 
 void CliController::frontend()
 {
-	qInfo() << qUtf8Printable(_runner->frontend().join(QStringLiteral(" ")));
+	qInfo().noquote() << _runner->frontend().join(QStringLiteral(" "));
 	qApp->quit();
 }
 
@@ -134,11 +143,12 @@ void CliController::printArgs()
 								"\t%1 update [packages...]: Mark packages as updated\n"
 								"\t%1 create <package> [dependencies...]: Create a rule for a package and it's dependencies\n"
 								"\t%1 list [detail]: List all packages that need to be rebuilt\n"
+								"\t%1 rules: List all evaluated rules\n"
 								"\t%1 clear [pkgs...]: Clear all packages that are marked to be rebuilt, or only the ones specified as parameters\n"
 								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n\n"
 								"Pass -v as additional parameter to enable verbose output.")
 							 .arg(QCoreApplication::applicationName());
-	qInfo() << qUtf8Printable(usage);
+	qInfo().noquote() << usage;
 }
 
 void CliController::testEmpty(const QStringList &args)
