@@ -28,7 +28,7 @@ void RuleController::createRule(const QString &pkg, const QStringList &deps)
 
 	ruleFile.write(deps.join(QStringLiteral(" ")).toUtf8());
 	ruleFile.close();
-	qDebug() << "Created rule for" << qUtf8Printable(pkg);
+	qDebug() << "Created rule for" << qUtf8Printable(pkg) << "as:" << ruleFile.fileName();
 }
 
 QString RuleController::listRules() const
