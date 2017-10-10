@@ -2,7 +2,7 @@
 #include <iostream>
 #include "clicontroller.h"
 
-void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 
 int main(int argc, char *argv[])
 {
@@ -12,15 +12,14 @@ int main(int argc, char *argv[])
 	QCoreApplication::setOrganizationName(QStringLiteral(COMPANY));
 	QCoreApplication::setOrganizationDomain(QStringLiteral(BUNDLE));
 
+	CliController controller;
+	controller.parseArguments(a);
 	qInstallMessageHandler(messageHandler);
 
-	CliController cli;
-
-	QMetaObject::invokeMethod(&cli, "parseCli", Qt::QueuedConnection);
 	return a.exec();
 }
 
-void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
 	auto message = qFormatLogMessage(type, context, msg);
 

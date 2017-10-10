@@ -26,7 +26,7 @@ QString PkgResolver::listDetailPkgs() const
 {
 	QStringList pkgs;
 	pkgs.append(QStringLiteral("%1| Triggered by").arg(QStringLiteral(" Package Update"), -30));
-	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49)); //TODO get console width
+	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
 
 	auto pkgInfos = readPkgs();
 	for(auto it = pkgInfos.constBegin(); it != pkgInfos.constEnd(); it++) {

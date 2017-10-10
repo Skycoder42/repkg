@@ -7,78 +7,106 @@ bool CliController::_verbose = false;
 
 CliController::CliController(QObject *parent) :
 	QObject(parent),
+	_parser(new QCliParser()),
 	_rules(new RuleController(this)),
 	_resolver(new PkgResolver(this)),
-	_runner(new PacmanRunner(this)),
-	_showHelp(false)
+	_runner(new PacmanRunner(this))
 {}
+
+void CliController::parseArguments(const QCoreApplication &app)
+{
+	setup();
+	_parser->process(app, true);
+
+	_verbose = _parser->isSet(QStringLiteral("verbose"));
+	QMetaObject::invokeMethod(this, "run", Qt::QueuedConnection);
+}
 
 bool CliController::verbose()
 {
 	return _verbose;
 }
 
-void CliController::parseCli()
+void CliController::run()
 {
 	try {
-		auto args = QCoreApplication::arguments();
-		args.removeFirst();
-
-		if(!args.isEmpty() &&
-		   (args.first() == QStringLiteral("-v") ||
-			args.first() == QStringLiteral("--verbose"))) {
-			_verbose = true;
-			args.removeFirst();
-		}
-
-		QString command;
-		if(!args.isEmpty())
-			command = args.takeFirst();
-		if(command.isEmpty())
-			command = QStringLiteral("rebuild");
-
-		if(command == QStringLiteral("rebuild")) {
+		auto args = _parser->positionalArguments();
+		if(_parser->enterContext(QStringLiteral("rebuild"))) {
 			testEmpty(args);
 			rebuild();
-		} else if(command == QStringLiteral("update"))
+		} else if(_parser->enterContext(QStringLiteral("update")))
 			update(args);
-		else if(command == QStringLiteral("create")) {
-			if(args.isEmpty()) {
-				_showHelp = true;
-				throw QStringLiteral("Expected package name as first argument for create");
-			}
+		else if(_parser->enterContext(QStringLiteral("create"))) {
+			if(args.isEmpty())
+				throw tr("You must specify a packate to create a rule for");
 			create(args.takeFirst(), args);
-		} else if(command == QStringLiteral("list")) {
-			auto detail = false;
-			if(!args.isEmpty() && args[0] == QStringLiteral("detail")) {
-				detail = true;
-				args.takeFirst();
-			}
+		} else if(_parser->enterContext(QStringLiteral("list"))) {
 			testEmpty(args);
-			list(detail);
-		} else if(command == QStringLiteral("rules")) {
+			list(_parser->isSet(QStringLiteral("detail")));
+		} else if(_parser->enterContext(QStringLiteral("rules"))) {
 			testEmpty(args);
 			listRules();
-		} else if(command == QStringLiteral("clear")) {
+		} else if(_parser->enterContext(QStringLiteral("clear")))
 			clear(args);
-		} else if(command == QStringLiteral("frontend")) {
+		else if(_parser->enterContext(QStringLiteral("frontend"))) {
 			if(args.isEmpty())
 				frontend();
 			else
 				setFrontend(args);
-		} else if(command == QStringLiteral("help")) {
-			printArgs();
-			qApp->quit();
-		} else {
-			_showHelp = true;
-			throw QStringLiteral("Invalid arguments!");
-		}
+		} else
+			throw QStringLiteral("Invalid arguments");
+		_parser->leaveContext();
 	} catch(QString &e) {
 		qCritical().noquote() << e;
-		if(_showHelp)
-			printArgs();
 		qApp->exit(EXIT_FAILURE);
 	}
+}
+
+void CliController::setup()
+{
+	_parser->setApplicationDescription(QStringLiteral("A tool to manage rebuilding of AUR packages based on their dependencies"));
+	_parser->addVersionOption();
+	_parser->addHelpOption();
+
+	_parser->addOption({
+						   QStringLiteral("verbose"),
+						   QStringLiteral("Run in verbose mode to output more information.")
+					   });
+
+	_parser->addLeafNode(QStringLiteral("rebuild"), QStringLiteral("Build all packages that need a rebuild."));
+	_parser->setDefaultNode(QStringLiteral("rebuild"));
+
+	auto updateNode = _parser->addLeafNode(QStringLiteral("update"), QStringLiteral("Mark packages as updated."));
+	updateNode->addPositionalArgument(QStringLiteral("packages"),
+									  QStringLiteral("The packages to be marked as updated."),
+									  QStringLiteral("[<package> ...]"));
+
+	auto createNode = _parser->addLeafNode(QStringLiteral("create"), QStringLiteral("Create a rule for a package and it's dependencies."));
+	createNode->addPositionalArgument(QStringLiteral("package"), QStringLiteral("The package to create a rule for."));
+	createNode->addPositionalArgument(QStringLiteral("dependencies"),
+									  QStringLiteral("The packages this one depends on and requires a rebuild for."),
+									  QStringLiteral("[<dependency> ...]"));
+
+	auto listNode = _parser->addLeafNode(QStringLiteral("list"), QStringLiteral("List all packages that need to be rebuilt."));
+	listNode->addOption({
+							{QStringLiteral("d"), QStringLiteral("detail")},
+							QStringLiteral("Display a detailed table with all packages and the dependencies that triggered them.")
+						});
+
+	_parser->addLeafNode(QStringLiteral("rules"), QStringLiteral("List all rules known to repkg"));
+
+	auto clearNode = _parser->addLeafNode(QStringLiteral("clear"),
+										  QStringLiteral("Clear all packages that are marked to be rebuilt, or only the ones specified as parameters."));
+	clearNode->addPositionalArgument(QStringLiteral("packages"),
+									 QStringLiteral("The packages to be cleared. If no packages are specified, all packages are cleared."),
+									 QStringLiteral("[<package> ...]"));
+
+	auto frontendNode = _parser->addLeafNode(QStringLiteral("frontend"), QStringLiteral("Display the current frontend or set a custom one."));
+	frontendNode->addOption({
+								{QStringLiteral("s"), QStringLiteral("set")},
+								QStringLiteral("Instead of displaying the tool, set a new <tool> as the one to be used by repkg."),
+								QStringLiteral("tool")
+							});
 }
 
 void CliController::rebuild()
@@ -153,8 +181,6 @@ void CliController::printArgs()
 
 void CliController::testEmpty(const QStringList &args)
 {
-	if(!args.isEmpty()) {
-		_showHelp = true;
+	if(!args.isEmpty())
 		throw QStringLiteral("Unexpected arguments after command!");
-	}
 }

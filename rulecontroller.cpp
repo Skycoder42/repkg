@@ -38,7 +38,7 @@ QString RuleController::listRules() const
 
 	QStringList pkgs;
 	pkgs.append(QStringLiteral("%1| Rule file").arg(QStringLiteral(" Package"), -30));
-	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49)); //TODO get console width
+	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
 
 	for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
 		pkgs.append(QStringLiteral("%1| %2")
