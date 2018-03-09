@@ -15,12 +15,13 @@ public:
 
 	QStringList listPkgs() const;
 	QString listDetailPkgs() const;
+	QList<QStringList> listPkgWaves() const;
 
 	void updatePkgs(const QStringList &pkgs, RuleController *rules);
 	void clear(const QStringList &pkgs);
 
 private:
-	typedef QMap<QString, QSet<QString>> PkgInfos;
+	typedef QMap<QString, QSet<QString>> PkgInfos; //package -> triggered by
 
 	QSettings *_settings;
 

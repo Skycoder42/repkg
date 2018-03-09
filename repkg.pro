@@ -40,7 +40,8 @@ SOURCES += main.cpp \
 DISTFILES += \
 	README.md \
 	repkg.sh \
-	repkg.hook
+	repkg.hook \
+	completitions/bash/repkg
 
 unix {
 	target.path = $$[QT_INSTALL_BINS]

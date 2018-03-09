@@ -33,7 +33,7 @@ private:
 	void listRules(bool listShort);
 	void clear(const QStringList &pkgs);
 	void frontend();
-	void setFrontend(const QStringList &frontend);
+	void setFrontend(const QStringList &frontend, bool waved);
 
 	void testEmpty(const QStringList &args);
 

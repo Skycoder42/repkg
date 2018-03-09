@@ -10,35 +10,46 @@ PacmanRunner::PacmanRunner(QObject *parent) :
 	QObject(parent)
 {}
 
-QStringList PacmanRunner::frontend() const
+std::tuple<QStringList, bool> PacmanRunner::frontend() const
 {
 	QSettings settings;
-	if(settings.contains(QStringLiteral("frontend")))
-	   return settings.value(QStringLiteral("frontend")).toStringList();
-	else {
-		QList<QStringList> defaultFn = {
-			{QStringLiteral("trizen")},
-			{QStringLiteral("pacaur"), QStringLiteral("--rebuild")},
-			{QStringLiteral("yaourt")}
+	if(settings.contains(QStringLiteral("frontend"))) {
+		return std::make_tuple(settings.value(QStringLiteral("frontend")).toStringList(),
+							   settings.value(QStringLiteral("frontend/waved"), false).toBool());
+	} else {
+		static const QList<std::tuple<QStringList, bool>> defaultFn = {
+			std::make_tuple(QStringList{QStringLiteral("trizen")}, false),
+			std::make_tuple(QStringList{QStringLiteral("pacaur"), QStringLiteral("--rebuild")}, false),
+			std::make_tuple(QStringList{QStringLiteral("yaourt")}, true)
 		};
 		for(auto fn : defaultFn) {
-			if(!QStandardPaths::findExecutable(fn.first()).isNull())
+			if(!QStandardPaths::findExecutable(std::get<0>(fn).first()).isNull())
 				return fn;
 		}
-		return {QStringLiteral("pacman")};
+		return std::make_tuple(QStringList{QStringLiteral("pacman")}, true);
 	}
 }
 
-void PacmanRunner::setFrontend(const QStringList &cli)
+QString PacmanRunner::frontendDescription() const
+{
+	auto fn = frontend();
+	return QStringLiteral("%1 (%2)")
+			.arg(std::get<0>(fn).join(QLatin1Char(' ')))
+			.arg(std::get<1>(fn) ? QStringLiteral("waved") : QStringLiteral("grouped"));
+}
+
+void PacmanRunner::setFrontend(const QStringList &cli, bool waved)
 {
 	QSettings settings;
 	settings.setValue(QStringLiteral("frontend"), cli);
-	qDebug() << "Updated pacman frontend to" << cli.first();
+	settings.setValue(QStringLiteral("frontend/waved"), waved);
+	qDebug() << "Updated pacman frontend to" << cli.first()
+			 << (waved ? "(waved)" : "(sorted)");
 }
 
-int PacmanRunner::run(const QStringList &pkgs)
+int PacmanRunner::run(const QList<QStringList> &waves)
 {
-	if(pkgs.isEmpty()) {
+	if(waves.isEmpty()) {
 		qWarning() << "No packages need to be rebuilt";
 		return EXIT_SUCCESS;
 	}
@@ -50,7 +61,8 @@ int PacmanRunner::run(const QStringList &pkgs)
 		throw QStringLiteral("Unable to find pacman binary in PATH");
 	proc.setProgram(pacman);
 	QStringList pacArgs {QStringLiteral("-Qi")};
-	pacArgs.append(pkgs);
+	for(auto pkgs : waves)
+		pacArgs.append(pkgs);
 	proc.setArguments(pacArgs);
 	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
 	proc.setStandardOutputFile(QProcess::nullDevice());
@@ -62,11 +74,25 @@ int PacmanRunner::run(const QStringList &pkgs)
 		throw QStringLiteral("Please remove repkg files of uninstalled packages and mark the unchanged via `repkg clear <pkg>`");
 
 	// run the frontend to reinstall packages
-	auto cliArgs = frontend();
+	QStringList cliArgs;
+	bool waved;
+	std::tie(cliArgs, waved) = frontend();
 	auto bin = QStandardPaths::findExecutable(cliArgs.takeFirst());
 	if(bin.isNull())
 		throw QStringLiteral("Unable to find binary \"%1\" in PATH").arg(bin);
 	cliArgs.append(QStringLiteral("-S"));
-	cliArgs.append(pkgs);
-	return QProcess::execute(bin, cliArgs);
+	if(waved) {
+		for(auto pkgs : waves) {
+			auto args = cliArgs;
+			args.append(pkgs);
+			auto res = QProcess::execute(bin, args);
+			if(res != EXIT_SUCCESS)
+				return res;
+		}
+		return EXIT_SUCCESS;
+	} else {
+		for(auto pkgs : waves)
+			cliArgs.append(pkgs);
+		return QProcess::execute(bin, cliArgs);
+	}
 }

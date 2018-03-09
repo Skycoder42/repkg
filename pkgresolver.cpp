@@ -16,10 +16,7 @@ PkgResolver::PkgResolver(QObject *parent) :
 
 QStringList PkgResolver::listPkgs() const
 {
-	QStringList pkgs;
-	for(auto pkg : readPkgs().keys())
-		pkgs.append(pkg);
-	return pkgs;
+	return readPkgs().keys();
 }
 
 QString PkgResolver::listDetailPkgs() const
@@ -37,6 +34,34 @@ QString PkgResolver::listDetailPkgs() const
 					.arg(lst.join(QStringLiteral(", "))));
 	}
 	return pkgs.join(QLatin1Char('\n'));
+}
+
+QList<QStringList> PkgResolver::listPkgWaves() const
+{
+	auto pkgs = readPkgs();
+
+	QList<QStringList> waves;
+	while(!pkgs.isEmpty()) {
+		//find all packages that dont have a trigger that needs to be rebuild as well
+		const auto keys = QSet<QString>::fromList(pkgs.keys());
+		QStringList wave;
+		for(auto it = pkgs.begin(); it != pkgs.end();) {
+			if(keys.intersects(it.value()))
+				it++; //has a trigger dep, postpone for later
+			else {
+				wave.append(it.key());
+				it = pkgs.erase(it);
+			}
+		}
+		if(wave.isEmpty()) {
+			throw QStringLiteral("Cyclic dependencies detected! Is within packages: %1")
+					.arg(keys.toList().join(QLatin1Char(' ')));
+		}
+		waves.append(wave);
+		qDebug() << "Calculated wave:" << wave.join(QLatin1Char(' '));
+	}
+
+	return waves;
 }
 
 void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)

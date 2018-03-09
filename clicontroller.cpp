@@ -52,9 +52,10 @@ void CliController::run()
 			clear(args);
 		else if(_parser->enterContext(QStringLiteral("frontend"))) {
 			testEmpty(args);
-			if(_parser->isSet(QStringLiteral("set")))
-				setFrontend(_parser->value(QStringLiteral("set")).split(QLatin1Char(' ')));
-			else
+			if(_parser->isSet(QStringLiteral("set"))) {
+				setFrontend(_parser->value(QStringLiteral("set")).split(QLatin1Char(' ')),
+							_parser->isSet(QStringLiteral("waved")));
+			} else
 				frontend();
 		} else
 			throw QStringLiteral("Invalid arguments");
@@ -106,6 +107,11 @@ void CliController::setup()
 							 {QStringLiteral("s"), QStringLiteral("short")},
 							 QStringLiteral("Only display the package names, not the path to the rule file.")
 						 });
+	rulesNode->addOption({
+							 QStringLiteral("waved"),
+							 QStringLiteral("Instead of passing all packages at once, split the into waves to avoid multiple "
+											"rebuilds for frontends that do not support orderd parameters.")
+						 });
 
 
 	auto clearNode = _parser->addLeafNode(QStringLiteral("clear"),
@@ -124,7 +130,7 @@ void CliController::setup()
 
 void CliController::rebuild()
 {
-	qApp->exit(_runner->run(_resolver->listPkgs()));
+	qApp->exit(_runner->run(_resolver->listPkgWaves()));
 }
 
 void CliController::update(const QStringList &pks)
@@ -173,13 +179,13 @@ void CliController::clear(const QStringList &pkgs)
 
 void CliController::frontend()
 {
-	qInfo().noquote() << _runner->frontend().join(QStringLiteral(" "));
+	qInfo().noquote() << _runner->frontendDescription();
 	qApp->quit();
 }
 
-void CliController::setFrontend(const QStringList &frontend)
+void CliController::setFrontend(const QStringList &frontend, bool waved)
 {
-	_runner->setFrontend(frontend);
+	_runner->setFrontend(frontend, waved);
 	qApp->quit();
 }
 

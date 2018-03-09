@@ -36,10 +36,10 @@ function _repkg {
 						optargs="$optargs -s --short"
 						;;
 					frontend)
-						optargs="$optargs -s --set"
+						optargs="$optargs -s --set --waved"
 						;;
 				esac
-				
+
 				## find the prefix: check if prefix was in prev list
 				if _repkg_contains_element $arg $prefix; then
 					case "$arg" in
@@ -60,7 +60,7 @@ function _repkg {
 			COMPREPLY=($(compgen -W "$prefix $optargs" -- $cur))
 			;;
 	esac
-	
+
 
 	return 0
 }
