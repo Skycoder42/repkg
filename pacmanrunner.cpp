@@ -59,7 +59,7 @@ int PacmanRunner::run(const QStringList &pkgs)
 	proc.start();
 	proc.waitForFinished(-1);
 	if(proc.exitCode() != EXIT_SUCCESS)
-		throw QStringLiteral("Please remove repkg files of uninstalled packages and mark the unchanged via `repkg update <pkg>`");
+		throw QStringLiteral("Please remove repkg files of uninstalled packages and mark the unchanged via `repkg clear <pkg>`");
 
 	// run the frontend to reinstall packages
 	auto cliArgs = frontend();

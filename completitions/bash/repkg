@@ -1,0 +1,68 @@
+# file: repkg
+# repkg parameter-completion
+
+function _repkg_contains_element {
+	local e match="$1"
+	shift
+	for e; do [[ "$e" == "$match" ]] && return 0; done
+	return 1
+}
+
+function _repkg {
+	local cur prev last bin arg optargs prefix
+
+	cur=${COMP_WORDS[COMP_CWORD]}
+	bin=${COMP_WORDS[0]}
+	last=${COMP_WORDS[COMP_CWORD-1]}
+	prev=("${COMP_WORDS[@]:1}")
+	unset 'prev[${#prev[@]}-1]'
+	COMPREPLY=()
+
+	## special last arg completitions for options
+	case "$last" in
+		-s|--set)
+			COMPREPLY=($(compgen -o plusdirs -c -- "${COMP_WORDS[COMP_CWORD]}"))
+			;;
+		*) ##default: normal completition
+			optargs='-h --help -v --version --verbose'
+			prefix='rebuild update create remove list rules clear frontend'
+			for arg in "${prev[@]}"; do
+				## collect all opt args
+				case "$arg" in
+					list)
+						optargs="$optargs -d --detail"
+						;;
+					rules)
+						optargs="$optargs -s --short"
+						;;
+					frontend)
+						optargs="$optargs -s --set"
+						;;
+				esac
+				
+				## find the prefix: check if prefix was in prev list
+				if _repkg_contains_element $arg $prefix; then
+					case "$arg" in
+						update|create)
+							prefix="$(pacman -Qq)"
+							break # break the loop here
+							;;
+						clear|remove)
+							prefix="$($bin rules --short)"
+							break # break the loop here
+							;;
+						*)
+							prefix=""
+							;;
+					esac
+				fi
+			done
+			COMPREPLY=($(compgen -W "$prefix $optargs" -- $cur))
+			;;
+	esac
+	
+
+	return 0
+}
+
+complete -F _repkg -o filenames repkg

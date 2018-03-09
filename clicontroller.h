@@ -30,7 +30,7 @@ private:
 	void create(const QString &pkg, const QStringList &rules);
 	void remove(const QStringList &pkgs);
 	void list(bool detail);
-	void listRules();
+	void listRules(bool listShort);
 	void clear(const QStringList &pkgs);
 	void frontend();
 	void setFrontend(const QStringList &frontend);

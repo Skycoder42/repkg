@@ -49,21 +49,25 @@ void RuleController::removeRule(const QString &pkg)
 		throw QStringLiteral("Failed to remove rule file for %1").arg(pkg);
 }
 
-QString RuleController::listRules() const
+QString RuleController::listRules(bool pkgOnly) const
 {
 	if(_rules.isEmpty())
 		readRules();
 
-	QStringList pkgs;
-	pkgs.append(QStringLiteral("%1| Rule file").arg(QStringLiteral(" Package"), -30));
-	pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
+	if(pkgOnly)
+		return _ruleInfos.keys().join(QLatin1Char(' '));
+	else {
+		QStringList pkgs;
+		pkgs.append(QStringLiteral("%1| Rule file").arg(QStringLiteral(" Package"), -30));
+		pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
 
-	for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
-		pkgs.append(QStringLiteral("%1| %2")
-					.arg(it.key(), -30)
-					.arg(it.value()));
+		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
+			pkgs.append(QStringLiteral("%1| %2")
+						.arg(it.key(), -30)
+						.arg(it.value()));
+		}
+		return pkgs.join(QLatin1Char('\n'));
 	}
-	return pkgs.join(QLatin1Char('\n'));
 }
 
 QStringList RuleController::analyze(const QString &pkg) const

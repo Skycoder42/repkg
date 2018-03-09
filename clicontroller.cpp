@@ -47,7 +47,7 @@ void CliController::run()
 			list(_parser->isSet(QStringLiteral("detail")));
 		} else if(_parser->enterContext(QStringLiteral("rules"))) {
 			testEmpty(args);
-			listRules();
+			listRules(_parser->isSet(QStringLiteral("short")));
 		} else if(_parser->enterContext(QStringLiteral("clear")))
 			clear(args);
 		else if(_parser->enterContext(QStringLiteral("frontend"))) {
@@ -101,7 +101,12 @@ void CliController::setup()
 							QStringLiteral("Display a detailed table with all packages and the dependencies that triggered them.")
 						});
 
-	_parser->addLeafNode(QStringLiteral("rules"), QStringLiteral("List all rules known to repkg"));
+	auto rulesNode = _parser->addLeafNode(QStringLiteral("rules"), QStringLiteral("List all rules known to repkg"));
+	rulesNode->addOption({
+							 {QStringLiteral("s"), QStringLiteral("short")},
+							 QStringLiteral("Only display the package names, not the path to the rule file.")
+						 });
+
 
 	auto clearNode = _parser->addLeafNode(QStringLiteral("clear"),
 										  QStringLiteral("Clear all packages that are marked to be rebuilt, or only the ones specified as parameters."));
@@ -154,9 +159,9 @@ void CliController::list(bool detail)
 	qApp->quit();
 }
 
-void CliController::listRules()
+void CliController::listRules(bool listShort)
 {
-	qInfo().noquote() << _rules->listRules();
+	qInfo().noquote() << _rules->listRules(listShort);
 	qApp->quit();
 }
 

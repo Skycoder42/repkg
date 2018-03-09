@@ -16,7 +16,7 @@ public:
 	void createRule(const QString &pkg, const QStringList &deps);
 	void removeRule(const QString &pkg);
 
-	QString listRules() const;
+	QString listRules(bool pkgOnly) const;
 
 	QStringList analyze(const QString &pkg) const;
 
