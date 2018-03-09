@@ -28,12 +28,12 @@ private:
 	void rebuild();
 	void update(const QStringList &pks);
 	void create(const QString &pkg, const QStringList &rules);
+	void remove(const QStringList &pkgs);
 	void list(bool detail);
 	void listRules();
 	void clear(const QStringList &pkgs);
 	void frontend();
 	void setFrontend(const QStringList &frontend);
-	void printArgs();
 
 	void testEmpty(const QStringList &args);
 

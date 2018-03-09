@@ -3,8 +3,8 @@
 #include <QDebug>
 #include <QSettings>
 #include <QStandardPaths>
-#include <unistd.h>
-#include <errno.h>
+#include <QProcess>
+#include <QCoreApplication>
 
 PacmanRunner::PacmanRunner(QObject *parent) :
 	QObject(parent)
@@ -17,10 +17,11 @@ QStringList PacmanRunner::frontend() const
 	   return settings.value(QStringLiteral("frontend")).toStringList();
 	else {
 		QList<QStringList> defaultFn = {
+			{QStringLiteral("trizen")},
 			{QStringLiteral("pacaur"), QStringLiteral("--rebuild")},
 			{QStringLiteral("yaourt")}
 		};
-		foreach(auto fn, defaultFn) {
+		for(auto fn : defaultFn) {
 			if(!QStandardPaths::findExecutable(fn.first()).isNull())
 				return fn;
 		}
@@ -35,32 +36,37 @@ void PacmanRunner::setFrontend(const QStringList &cli)
 	qDebug() << "Updated pacman frontend to" << cli.first();
 }
 
-void PacmanRunner::run(const QStringList &pkgs)
+int PacmanRunner::run(const QStringList &pkgs)
 {
 	if(pkgs.isEmpty()) {
 		qWarning() << "No packages need to be rebuilt";
-		return;
+		return EXIT_SUCCESS;
 	}
 
-	qDebug() << "Rebulding packages:" << pkgs;
+	//check if all packages are installed
+	QProcess proc;
+	auto pacman = QStandardPaths::findExecutable(QStringLiteral("pacman"));
+	if(pacman.isNull())
+		throw QStringLiteral("Unable to find pacman binary in PATH");
+	proc.setProgram(pacman);
+	QStringList pacArgs {QStringLiteral("-Qi")};
+	pacArgs.append(pkgs);
+	proc.setArguments(pacArgs);
+	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+	proc.setStandardOutputFile(QProcess::nullDevice());
 
-	auto cli = frontend();
-	cli[0] = QStandardPaths::findExecutable(cli[0]);
-	if(cli[0].isNull())
-		throw QStringLiteral("Unable to find binary \"%1\"").arg(pkgs.first());
-	cli.append(QStringLiteral("-S"));
-	cli.append(pkgs);
+	qDebug() << "Checking if all packages are still installed...";
+	proc.start();
+	proc.waitForFinished(-1);
+	if(proc.exitCode() != EXIT_SUCCESS)
+		throw QStringLiteral("Please remove repkg files of uninstalled packages and mark the unchanged via `repkg update <pkg>`");
 
-	QByteArrayList byteArgs;
-	foreach (auto arg, cli)
-		byteArgs.append(arg.toUtf8());
-
-	auto args = new char*[cli.size() + 1];
-	for(auto i = 0; i < cli.size(); i++)
-		args[i] = byteArgs[i].data();
-	args[cli.size()] = nullptr;
-
-	execv(args[0], args);
-	//unexcepted error
-	throw QStringLiteral("execv failed with error code %1").arg(errno);
+	// run the frontend to reinstall packages
+	auto cliArgs = frontend();
+	auto bin = QStandardPaths::findExecutable(cliArgs.takeFirst());
+	if(bin.isNull())
+		throw QStringLiteral("Unable to find binary \"%1\" in PATH").arg(bin);
+	cliArgs.append(QStringLiteral("-S"));
+	cliArgs.append(pkgs);
+	return QProcess::execute(bin, cliArgs);
 }

@@ -12,7 +12,10 @@ public:
 	QStringList frontend() const;
 	void setFrontend(const QStringList &cli);
 
-	void run(const QStringList &pkgs);
+	int run(const QStringList &pkgs);
+
+private:
+	void checkInstalled(const QString &pkg);
 };
 
 #endif // PACMANRUNNER_H

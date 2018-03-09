@@ -38,9 +38,11 @@ void CliController::run()
 			update(args);
 		else if(_parser->enterContext(QStringLiteral("create"))) {
 			if(args.isEmpty())
-				throw tr("You must specify a packate to create a rule for");
+				throw tr("You must specify a package to create a rule for");
 			create(args.takeFirst(), args);
-		} else if(_parser->enterContext(QStringLiteral("list"))) {
+		} else if(_parser->enterContext(QStringLiteral("remove")))
+			remove(args);
+		else if(_parser->enterContext(QStringLiteral("list"))) {
 			testEmpty(args);
 			list(_parser->isSet(QStringLiteral("detail")));
 		} else if(_parser->enterContext(QStringLiteral("rules"))) {
@@ -49,10 +51,11 @@ void CliController::run()
 		} else if(_parser->enterContext(QStringLiteral("clear")))
 			clear(args);
 		else if(_parser->enterContext(QStringLiteral("frontend"))) {
-			if(args.isEmpty())
-				frontend();
+			testEmpty(args);
+			if(_parser->isSet(QStringLiteral("set")))
+				setFrontend(_parser->value(QStringLiteral("set")).split(QLatin1Char(' ')));
 			else
-				setFrontend(args);
+				frontend();
 		} else
 			throw QStringLiteral("Invalid arguments");
 		_parser->leaveContext();
@@ -87,6 +90,11 @@ void CliController::setup()
 									  QStringLiteral("The packages this one depends on and requires a rebuild for."),
 									  QStringLiteral("[<dependency> ...]"));
 
+	auto removeNode = _parser->addLeafNode(QStringLiteral("remove"), QStringLiteral("Remove previously created package rules"));
+	removeNode->addPositionalArgument(QStringLiteral("packages"),
+									  QStringLiteral("The packages to remove the rules for."),
+									  QStringLiteral("[<package> ...]"));
+
 	auto listNode = _parser->addLeafNode(QStringLiteral("list"), QStringLiteral("List all packages that need to be rebuilt."));
 	listNode->addOption({
 							{QStringLiteral("d"), QStringLiteral("detail")},
@@ -111,8 +119,7 @@ void CliController::setup()
 
 void CliController::rebuild()
 {
-	_runner->run(_resolver->listPkgs());
-	qApp->quit();
+	qApp->exit(_runner->run(_resolver->listPkgs()));
 }
 
 void CliController::update(const QStringList &pks)
@@ -124,6 +131,14 @@ void CliController::update(const QStringList &pks)
 void CliController::create(const QString &pkg, const QStringList &rules)
 {
 	_rules->createRule(pkg, rules);
+	qApp->quit();
+}
+
+void CliController::remove(const QStringList &pkgs)
+{
+	for(auto pkg : pkgs)
+		_rules->removeRule(pkg);
+	qInfo() << "Remember to run `sudo repkg update <pkgs>` to remove any already scheduled rebuilds";
 	qApp->quit();
 }
 
@@ -161,22 +176,6 @@ void CliController::setFrontend(const QStringList &frontend)
 {
 	_runner->setFrontend(frontend);
 	qApp->quit();
-}
-
-void CliController::printArgs()
-{
-	auto usage = QStringLiteral("Usage: %1 [-v|--verbose] [operation] [...]\n"
-								"Operations:\n"
-								"\t%1 [rebuild]: Build all packages that need a rebuild\n"
-								"\t%1 update [packages...]: Mark packages as updated\n"
-								"\t%1 create <package> [dependencies...]: Create a rule for a package and it's dependencies\n"
-								"\t%1 list [detail]: List all packages that need to be rebuilt\n"
-								"\t%1 rules: List all evaluated rules\n"
-								"\t%1 clear [pkgs...]: Clear all packages that are marked to be rebuilt, or only the ones specified as parameters\n"
-								"\t%1 frontend [tool]: Display the current frontend or set a custom one.\n\n"
-								"Pass -v as additional parameter to enable verbose output.")
-							 .arg(QCoreApplication::applicationName());
-	qInfo().noquote() << usage;
 }
 
 void CliController::testEmpty(const QStringList &args)

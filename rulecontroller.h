@@ -14,6 +14,7 @@ public:
 	explicit RuleController(QObject *parent = nullptr);
 
 	void createRule(const QString &pkg, const QStringList &deps);
+	void removeRule(const QString &pkg);
 
 	QString listRules() const;
 
