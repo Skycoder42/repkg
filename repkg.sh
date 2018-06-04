@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-pkgInfos=$(</dev/stdin)
-/usr/bin/repkg update $pkgInfos
+/home/sky/Programming/QtProjects/build-repkg-System_Qt_5_11_0-Debug/repkg update --stdin
 
 updatePkg=$(/usr/bin/repkg list)
 if [ -n "$updatePkg" ]; then

@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QFile>
 
 bool CliController::_verbose = false;
 
@@ -35,7 +36,7 @@ void CliController::run()
 			testEmpty(args);
 			rebuild();
 		} else if(_parser->enterContext(QStringLiteral("update")))
-			update(args);
+			update(args, _parser->isSet(QStringLiteral("stdin")));
 		else if(_parser->enterContext(QStringLiteral("create"))) {
 			if(args.isEmpty())
 				throw tr("You must specify a package to create a rule for");
@@ -84,6 +85,10 @@ void CliController::setup()
 	updateNode->addPositionalArgument(QStringLiteral("packages"),
 									  QStringLiteral("The packages to be marked as updated."),
 									  QStringLiteral("[<package> ...]"));
+	updateNode->addOption({
+							  QStringLiteral("stdin"),
+							  QStringLiteral("Read the packages to be updated from stdin")
+						  });
 
 	auto createNode = _parser->addLeafNode(QStringLiteral("create"), QStringLiteral("Create a rule for a package and it's dependencies."));
 	createNode->addPositionalArgument(QStringLiteral("package"), QStringLiteral("The package to create a rule for."));
@@ -133,9 +138,16 @@ void CliController::rebuild()
 	qApp->exit(_runner->run(_resolver->listPkgWaves()));
 }
 
-void CliController::update(const QStringList &pks)
+void CliController::update(QStringList pkgs, bool fromStdin)
 {
-	_resolver->updatePkgs(pks, _rules);
+	if(fromStdin) {
+		if(!pkgs.isEmpty())
+			qWarning() << "Ignoring packages passed as arguments, reading from stdin";
+		QFile in;
+		in.open(stdin, QIODevice::ReadOnly);
+		pkgs = QString::fromUtf8(in.readLine().simplified()).split(QLatin1Char(' '), QString::SkipEmptyParts);
+	}
+	_resolver->updatePkgs(pkgs, _rules);
 	qApp->quit();
 }
 
