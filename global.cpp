@@ -27,7 +27,7 @@ QDir global::userPath()
 	if(dir.exists())
 		return dir;
 	else
-		return QDir();
+		return {};
 }
 
 QDir global::rootPath()
@@ -39,5 +39,14 @@ QDir global::rootPath()
 	if(dir.exists())
 		return dir;
 	else
-		return QDir();
+		return {};
+}
+
+QDir global::systemPath()
+{
+	QDir dir{rootPath()};
+	if(dir.cd(QStringLiteral("system")))
+		return dir;
+	else
+		return {};
 }

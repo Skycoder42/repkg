@@ -11,6 +11,7 @@ bool isRoot();
 
 QDir userPath();
 QDir rootPath();
+QDir systemPath();
 }
 
 #endif // GLOBAL_H

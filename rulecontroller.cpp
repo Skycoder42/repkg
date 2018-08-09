@@ -96,7 +96,8 @@ void RuleController::readRules() const
 {
 	QList<std::pair<QDir, bool>> paths {
 		{userPath(), false},
-		{rootPath(), true}
+		{rootPath(), true},
+		{systemPath(), true},
 	};
 
 	_ruleInfos.clear();
