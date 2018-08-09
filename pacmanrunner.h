@@ -3,6 +3,7 @@
 
 #include <tuple>
 #include <QObject>
+#include <QProcess>
 
 class PacmanRunner : public QObject
 {
@@ -19,8 +20,11 @@ public:
 
 	int run(const QList<QStringList> &pkgs);
 
+	QString readPackageVersion(const QString &pkg);
+	bool comparePackageVersion(const QString &vOld, const QString &vNew);
+
 private:
-	void checkInstalled(const QString &pkg);
+	void initPacman(QProcess &proc, bool asVercmp = false) const;
 };
 
 #endif // PACMANRUNNER_H

@@ -1,6 +1,7 @@
 #ifndef PKGRESOLVER_H
 #define PKGRESOLVER_H
 
+#include "pacmanrunner.h"
 #include "rulecontroller.h"
 
 #include <QObject>
@@ -17,16 +18,22 @@ public:
 	QString listDetailPkgs() const;
 	QList<QStringList> listPkgWaves() const;
 
-	void updatePkgs(const QStringList &pkgs, RuleController *rules);
+	void updatePkgs(const QStringList &pkgs,
+					RuleController *rules,
+					PacmanRunner *runner);
 	void clear(const QStringList &pkgs);
 
 private:
-	typedef QMap<QString, QSet<QString>> PkgInfos; //package -> triggered by
+	using PkgInfos = QMap<QString, QSet<QString>>; //package -> triggered by
 
 	QSettings *_settings;
 
 	PkgInfos readPkgs() const;
 	void writePkgs(const PkgInfos &pkgInfos);
+
+	QString readVersion();
+
+	bool checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, const QString &target, PacmanRunner *runner);
 };
 
 #endif // PKGRESOLVER_H

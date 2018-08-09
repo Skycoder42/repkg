@@ -5,12 +5,15 @@
 #include <QHash>
 #include <QDir>
 #include <QMap>
+#include <QRegularExpression>
 
 class RuleController : public QObject
 {
 	Q_OBJECT
 
 public:
+	using RuleInfo = std::pair<QString, QRegularExpression>;
+
 	explicit RuleController(QObject *parent = nullptr);
 
 	void createRule(const QString &pkg, const QStringList &deps);
@@ -18,11 +21,11 @@ public:
 
 	QString listRules(bool pkgOnly) const;
 
-	QStringList analyze(const QString &pkg) const;
+	QList<RuleInfo> findRules(const QString &pkg) const;
 
 private:
-	mutable QMap<QString, QString> _ruleInfos;
-	mutable QMultiHash<QString, QString> _rules;
+	mutable QMap<QString, std::pair<QStringList, bool>> _ruleInfos;
+	mutable QMultiHash<QString, RuleInfo> _rules;
 
 
 	void readRules() const;

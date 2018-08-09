@@ -10,8 +10,7 @@
 using namespace global;
 
 RuleController::RuleController(QObject *parent) :
-	QObject(parent),
-	_rules()
+	QObject{parent}
 {}
 
 void RuleController::createRule(const QString &pkg, const QStringList &deps)
@@ -56,20 +55,27 @@ QString RuleController::listRules(bool pkgOnly) const
 	if(pkgOnly)
 		return _ruleInfos.keys().join(QLatin1Char(' '));
 	else {
+		auto baselen = 9;
+		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++)
+			baselen = std::max(baselen, it.key().size() + 2);
+
 		QStringList pkgs;
-		pkgs.append(QStringLiteral("%1| Rule file").arg(QStringLiteral(" Package"), -30));
-		pkgs.append(QStringLiteral("-").repeated(30) + QLatin1Char('|') + QStringLiteral("-").repeated(49));
+		pkgs.append(QStringLiteral("%1| Origin | Triggers").arg(QStringLiteral(" Package"), -baselen));
+		pkgs.append(QStringLiteral("-").repeated(baselen) + QLatin1Char('|') +
+					QStringLiteral("-").repeated(8) + QLatin1Char('|') +
+					QStringLiteral("-").repeated(70 - baselen));
 
 		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
-			pkgs.append(QStringLiteral("%1| %2")
-						.arg(it.key(), -30)
-						.arg(it.value()));
+			pkgs.append(QStringLiteral(" %1| %2| %3")
+						.arg(it.key(), -(baselen - 1))
+						.arg(it->second ? QStringLiteral("User") : QStringLiteral("System"), -7)
+						.arg(it->first.join(QLatin1Char(' '))));
 		}
 		return pkgs.join(QLatin1Char('\n'));
 	}
 }
 
-QStringList RuleController::analyze(const QString &pkg) const
+QList<RuleController::RuleInfo> RuleController::findRules(const QString &pkg) const
 {
 	if(_rules.isEmpty())
 		readRules();
@@ -78,22 +84,25 @@ QStringList RuleController::analyze(const QString &pkg) const
 
 void RuleController::readRules() const
 {
-	QList<QDir> paths = {userPath(), rootPath()};
+	QList<std::pair<QDir, bool>> paths {
+		{userPath(), true},
+		{rootPath(), false}
+	};
 
 	_ruleInfos.clear();
 	_rules.clear();
-	QMultiHash<QString, QString> ruleBase;
+	QMultiHash<QString, std::pair<QString, QRegularExpression>> ruleBase;
 
-	for(const auto& path : paths) {
-		QDir dir(path);
+	for(auto &path : paths) {
+		auto &dir = path.first;
 		dir.setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::Readable);
 		dir.setNameFilters({QStringLiteral("*.rule")});
-		for(const auto& fileInfo : dir.entryInfoList()) {
+		for(const auto &fileInfo : dir.entryInfoList()) {
 			auto name = fileInfo.completeBaseName();
 			if(ruleBase.contains(name))
 				continue;
 
-			QFile file(fileInfo.absoluteFilePath());
+			QFile file{fileInfo.absoluteFilePath()};
 			if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
 				qWarning() << "Failed to read file" << file.fileName()
 						   << "with error" << file.errorString();
@@ -102,15 +111,33 @@ void RuleController::readRules() const
 
 			auto str = QString::fromUtf8(file.readAll());
 			file.close();
-			auto pkgs = str.split(QRegularExpression(QStringLiteral("\\s")));
+			static const QRegularExpression splitRegex{
+				QStringLiteral("\\s"),
+				QRegularExpression::DontCaptureOption |
+				QRegularExpression::OptimizeOnFirstUsageOption
+			};
+			auto pkgs = str.split(splitRegex);
 
-			_ruleInfos.insert(name, fileInfo.absoluteFilePath());
-			for(const auto& pkg : pkgs)
-				ruleBase.insert(name, pkg);
+			QStringList ruleList;
+			ruleList.reserve(pkgs.size());
+			for(const auto& pkgInfo : pkgs) {
+				static const QRegularExpression pkgInfoRegex{
+					QStringLiteral(R"__(^(.*?)(?:{{(.*)}})?$)__"),
+					QRegularExpression::OptimizeOnFirstUsageOption
+				};
+				auto match = pkgInfoRegex.match(pkgInfo);
+				Q_ASSERT(match.hasMatch());
+				ruleList.append(match.captured(1));
+				if(match.capturedView(2).isEmpty())
+					ruleBase.insert(name, {match.captured(1), {}});
+				else
+					ruleBase.insert(name, {match.captured(1), QRegularExpression{match.captured(2)}});
+			}
+			_ruleInfos.insert(name, {ruleList, path.second});
 		}
 	}
 
 	//invert rules for easier evaluation
 	for(auto it = ruleBase.begin(); it != ruleBase.end(); it++)
-		_rules.insert(it.value(), it.key());
+		_rules.insert(it.value().first, {it.key(), it.value().second});
 }

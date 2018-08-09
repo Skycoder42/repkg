@@ -64,7 +64,7 @@ QList<QStringList> PkgResolver::listPkgWaves() const
 	return waves;
 }
 
-void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
+void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules, PacmanRunner *runner)
 {
 	if(!isRoot())
 		throw QStringLiteral("Must be run as root to update packages!");
@@ -83,16 +83,24 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 			continue;
 
 		//check if packages need updates
-		auto matches = rules->analyze(pkg);
+		auto matches = rules->findRules(pkg);
 		//add those to the "needs updates" list
 		//and check if they themselves will trigger rebuilds by adding them to the queue
 		for(const auto& match : matches) {
-			pkgInfos[match].insert(pkg);
-			pkgQueue.enqueue(match);
-			qDebug() << "Rule triggered. Marked"
-					 << match
-					 << "for updates because of"
-					 << pkg;
+			if(checkVersionUpdate(match, pkg, runner)) {
+				pkgInfos[match.first].insert(pkg);
+				pkgQueue.enqueue(match.first);
+				qDebug() << "Rule triggered. Marked"
+						 << match.first
+						 << "for updates because of"
+						 << pkg;
+			} else {
+				qDebug() << "Rule skipped. Did not mark "
+						 << match.first
+						 << "for updates because version of"
+						 << pkg
+						 << "did not change significantly";
+			}
 		}
 
 		//each package only once -> skip next time
@@ -147,7 +155,35 @@ void PkgResolver::writePkgs(const PkgInfos &pkgInfos)
 	for(auto i = 0; i < pkgInfos.size(); i++) {
 		_settings->setArrayIndex(i);
 		_settings->setValue(QStringLiteral("name"), keys[i]);
-		_settings->setValue(QStringLiteral("reason"), (QStringList)pkgInfos[keys[i]].toList());
+		_settings->setValue(QStringLiteral("reason"), static_cast<QStringList>(pkgInfos[keys[i]].toList()));
 	}
 	_settings->endArray();
+}
+
+bool PkgResolver::checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, const QString &target, PacmanRunner *runner)
+{
+	auto newVersion = runner->readPackageVersion(target);
+
+	_settings->beginGroup(QStringLiteral("versions"));
+	_settings->beginGroup(pkgInfo.first);
+	auto oldVersion = _settings->value(target).toString();
+	_settings->setValue(target, newVersion);
+	_settings->endGroup();
+	_settings->endGroup();
+
+	if(!pkgInfo.second.isValid() || oldVersion.isEmpty())
+		return true;
+
+	// filter both versions
+	oldVersion = pkgInfo.second.match(oldVersion).captured(1);
+	newVersion = pkgInfo.second.match(newVersion).captured(1);
+	if(newVersion.isEmpty() || oldVersion.isEmpty()) { // in case of a failed match -> is update
+		qWarning() << "Failed to filter package versions of" << pkgInfo.first
+				   << "for rule of" << target << "- this indicates a broken regex!";
+		return true;
+	}
+
+	qDebug() << "Check versions of" << target << ", comparing"
+			 << oldVersion << "with" << newVersion;
+	return runner->comparePackageVersion(oldVersion, newVersion);
 }

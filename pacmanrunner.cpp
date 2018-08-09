@@ -3,8 +3,8 @@
 #include <QDebug>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QProcess>
 #include <QCoreApplication>
+#include <QRegularExpression>
 
 #include <unistd.h>
 #include <cerrno>
@@ -66,16 +66,12 @@ int PacmanRunner::run(const QList<QStringList> &waves)
 
 	//check if all packages are installed
 	QProcess proc;
-	auto pacman = QStandardPaths::findExecutable(QStringLiteral("pacman"));
-	if(pacman.isNull())
-		throw QStringLiteral("Unable to find pacman binary in PATH");
-	proc.setProgram(pacman);
+	initPacman(proc);
+	proc.setStandardOutputFile(QProcess::nullDevice());
 	QStringList pacArgs {QStringLiteral("-Qi")};
 	for(const auto& pkgs : waves)
 		pacArgs.append(pkgs);
 	proc.setArguments(pacArgs);
-	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
-	proc.setStandardOutputFile(QProcess::nullDevice());
 
 	qDebug() << "Checking if all packages are still installed...";
 	proc.start();
@@ -121,4 +117,53 @@ int PacmanRunner::run(const QList<QStringList> &waves)
 		//unexcepted error
 		throw QStringLiteral("execv failed with error: %1").arg(qt_error_string(errno));
 	}
+}
+
+QString PacmanRunner::readPackageVersion(const QString &pkg)
+{
+	//read the package version from pacman
+	QProcess proc;
+	initPacman(proc);
+	proc.setArguments({QStringLiteral("-Q"), pkg});
+
+	qDebug() << "Querying package version of" << pkg << "...";
+	proc.start();
+	proc.waitForFinished(-1);
+	if(proc.exitCode() != EXIT_SUCCESS)
+		throw QStringLiteral("Failed to get current version of package %1 from pacman").arg(pkg);
+
+	auto match = QRegularExpression {
+		QStringLiteral(R"__(^(?:%1)\s*(.*)$)__").arg(QRegularExpression::escape(pkg)),
+		QRegularExpression::DontAutomaticallyOptimizeOption
+	}.match(QString::fromUtf8(proc.readAllStandardOutput().simplified()));
+	if(!match.hasMatch())
+		throw QStringLiteral("Failed to get current version of package %1 from pacman").arg(pkg);
+	return match.captured(1);
+}
+
+bool PacmanRunner::comparePackageVersion(const QString &vOld, const QString &vNew)
+{
+	// compare both versions. Only difference matters, not which one is newer or older
+	QProcess proc;
+	initPacman(proc, true);
+	proc.setArguments({vOld, vNew});
+
+	qDebug() << "Comparing package versions...";
+	proc.start();
+	proc.waitForFinished(-1);
+	if(proc.exitCode() != EXIT_SUCCESS)
+		throw QStringLiteral("Failed to compare versions");
+
+	return proc.readAllStandardOutput().simplified().toInt() != 0;
+}
+
+void PacmanRunner::initPacman(QProcess &proc, bool asVercmp) const
+{
+	auto pacman = asVercmp ?
+					  QStandardPaths::findExecutable(QStringLiteral("vercmp")) :
+					  QStandardPaths::findExecutable(QStringLiteral("pacman"));
+	if(pacman.isNull())
+		throw QStringLiteral("Unable to find %1 binary in PATH").arg(asVercmp ? QStringLiteral("vercmp") :QStringLiteral("pacman"));
+	proc.setProgram(pacman);
+	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
 }

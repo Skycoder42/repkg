@@ -157,7 +157,7 @@ void CliController::update(QStringList pkgs, bool fromStdin)
 		in.open(stdin, QIODevice::ReadOnly);
 		pkgs = QString::fromUtf8(in.readAll().simplified()).split(QLatin1Char(' '), QString::SkipEmptyParts);
 	}
-	_resolver->updatePkgs(pkgs, _rules);
+	_resolver->updatePkgs(pkgs, _rules, _runner);
 	qApp->quit();
 }
 
