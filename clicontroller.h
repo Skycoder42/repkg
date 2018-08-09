@@ -34,6 +34,7 @@ private:
 	void clear(const QStringList &pkgs);
 	void frontend();
 	void setFrontend(const QStringList &frontend, bool waved);
+	void resetFrontend();
 
 	void testEmpty(const QStringList &args);
 

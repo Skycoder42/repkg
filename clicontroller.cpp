@@ -56,7 +56,9 @@ void CliController::run()
 			if(_parser->isSet(QStringLiteral("set"))) {
 				setFrontend(_parser->value(QStringLiteral("set")).split(QLatin1Char(' ')),
 							_parser->isSet(QStringLiteral("waved")));
-			} else
+			} else if(_parser->isSet(QStringLiteral("reset")))
+				resetFrontend();
+			else
 				frontend();
 		} else
 			throw QStringLiteral("Invalid arguments");
@@ -131,6 +133,14 @@ void CliController::setup()
 								QStringLiteral("Instead of displaying the tool, set a new <tool> as the one to be used by repkg."),
 								QStringLiteral("tool")
 							});
+	frontendNode->addOption({
+								{QStringLiteral("w"), QStringLiteral("waved")},
+								QStringLiteral("Can be used together with \"--set <args>\" to call the tool in waves")
+							});
+	frontendNode->addOption({
+								{QStringLiteral("r"), QStringLiteral("reset")},
+								QStringLiteral("Reset the frontend, so that repkg can automatically find the default to be used with correct parameters")
+							});
 }
 
 void CliController::rebuild()
@@ -198,6 +208,12 @@ void CliController::frontend()
 void CliController::setFrontend(const QStringList &frontend, bool waved)
 {
 	_runner->setFrontend(frontend, waved);
+	qApp->quit();
+}
+
+void CliController::resetFrontend()
+{
+	_runner->resetFrontend();
 	qApp->quit();
 }
 

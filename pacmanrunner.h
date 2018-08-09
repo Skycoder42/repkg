@@ -14,6 +14,7 @@ public:
 	std::tuple<QStringList, bool> frontend() const; //(frontend, waved)
 	QString frontendDescription() const;
 	void setFrontend(const QStringList &cli, bool waved);
+	void resetFrontend();
 	bool isWaved() const;
 
 	int run(const QList<QStringList> &pkgs);
