@@ -47,28 +47,38 @@ void RuleController::removeRule(const QString &pkg)
 		throw QStringLiteral("Failed to remove rule file for %1").arg(pkg);
 }
 
-QString RuleController::listRules(bool pkgOnly) const
+QString RuleController::listRules(bool pkgOnly, bool userOnly) const
 {
 	if(_rules.isEmpty())
 		readRules();
 
-	if(pkgOnly)
-		return _ruleInfos.keys().join(QLatin1Char(' '));
-	else {
+	if(pkgOnly) {
+		QStringList pkgs;
+		pkgs.reserve(_ruleInfos.size());
+		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
+			if(userOnly && (it->second != isRoot()))
+				continue;
+			pkgs.append(it.key());
+		}
+		return pkgs.join(QLatin1Char(' '));
+	} else {
 		auto baselen = 9;
 		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++)
 			baselen = std::max(baselen, it.key().size() + 2);
 
 		QStringList pkgs;
+		pkgs.reserve(_ruleInfos.size() + 2);
 		pkgs.append(QStringLiteral("%1| Origin | Triggers").arg(QStringLiteral(" Package"), -baselen));
 		pkgs.append(QStringLiteral("-").repeated(baselen) + QLatin1Char('|') +
 					QStringLiteral("-").repeated(8) + QLatin1Char('|') +
 					QStringLiteral("-").repeated(70 - baselen));
 
 		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
+			if(userOnly && (it->second != isRoot()))
+				continue;
 			pkgs.append(QStringLiteral(" %1| %2| %3")
 						.arg(it.key(), -(baselen - 1))
-						.arg(it->second ? QStringLiteral("User") : QStringLiteral("System"), -7)
+						.arg(it->second ? QStringLiteral("System") : QStringLiteral("User"), -7)
 						.arg(it->first.join(QLatin1Char(' '))));
 		}
 		return pkgs.join(QLatin1Char('\n'));
@@ -85,8 +95,8 @@ QList<RuleController::RuleInfo> RuleController::findRules(const QString &pkg) co
 void RuleController::readRules() const
 {
 	QList<std::pair<QDir, bool>> paths {
-		{userPath(), true},
-		{rootPath(), false}
+		{userPath(), false},
+		{rootPath(), true}
 	};
 
 	_ruleInfos.clear();

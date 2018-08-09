@@ -1,0 +1,62 @@
+#compdef repkg
+
+typeset -A opt_args
+setopt extendedglob
+
+local optargs cmdargs providers
+
+optargs=(
+	'(-h --help)'{-h,--help}'[help]'
+	{-v,--version}'[version]'
+	'--verbose[show more output]'
+)
+
+cmdargs=(':first command:(clear create frontend list rebuild remove rules update)')
+
+_arguments -C $cmdargs $optargs "*::arg:->args"
+
+cmdargs=()
+case $line[1] in
+	clear)
+		cmdargs=("*::packages:($(repkg list))")
+		;;
+	create)
+		cmdargs=(
+			":package:($(pacman -Qq))"
+			"*:dependencies:($(pacman -Qq))"
+		)
+		;;
+	frontend)
+		optargs=(
+			$optargs
+			{-s,--set}'[change the frontend]:tool:_files'
+			{-w,--waved}'[call in waved mode]'
+			{-r,--reset}'[reset to default]'
+		)
+		;;
+	list)
+		optargs=(
+			$optargs
+			{-d,--detail}'[display a detailed table]'
+		)
+		;;
+	remove)
+		cmdargs=("*::packages:($(repkg rules --short --user))")
+		;;
+	rules)
+		optargs=(
+			$optargs
+			{-s,--short}'[display short list]'
+			{-u,--user}'[only rules of current user]'
+		)
+		;;
+	update)
+		optargs=(
+			$optargs
+			'--stdin[read packages from stdin]'
+		)
+		cmdargs=("*::packages:($(pacman -Qq))")
+		;;
+esac
+
+_arguments $optargs $cmdargs

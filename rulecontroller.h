@@ -19,7 +19,7 @@ public:
 	void createRule(const QString &pkg, const QStringList &deps);
 	void removeRule(const QString &pkg);
 
-	QString listRules(bool pkgOnly) const;
+	QString listRules(bool pkgOnly, bool userOnly) const;
 
 	QList<RuleInfo> findRules(const QString &pkg) const;
 

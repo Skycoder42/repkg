@@ -48,7 +48,8 @@ void CliController::run()
 			list(_parser->isSet(QStringLiteral("detail")));
 		} else if(_parser->enterContext(QStringLiteral("rules"))) {
 			testEmpty(args);
-			listRules(_parser->isSet(QStringLiteral("short")));
+			listRules(_parser->isSet(QStringLiteral("short")),
+					  _parser->isSet(QStringLiteral("user")));
 		} else if(_parser->enterContext(QStringLiteral("clear")))
 			clear(args);
 		else if(_parser->enterContext(QStringLiteral("frontend"))) {
@@ -115,9 +116,8 @@ void CliController::setup()
 							 QStringLiteral("Only display the package names, not the path to the rule file.")
 						 });
 	rulesNode->addOption({
-							 QStringLiteral("waved"),
-							 QStringLiteral("Instead of passing all packages at once, split the into waves to avoid multiple "
-											"rebuilds for frontends that do not support orderd parameters.")
+							 {QStringLiteral("u"), QStringLiteral("user")},
+							 QStringLiteral("Only display rules the belong to the currently executing user.")
 						 });
 
 
@@ -134,8 +134,9 @@ void CliController::setup()
 								QStringLiteral("tool")
 							});
 	frontendNode->addOption({
-								{QStringLiteral("w"), QStringLiteral("waved")},
-								QStringLiteral("Can be used together with \"--set <args>\" to call the tool in waves")
+								QStringLiteral("waved"),
+								QStringLiteral("Combine with '--set'. Instead of passing all packages at once, split the into waves to avoid multiple "
+											   "rebuilds for frontends that do not support orderd parameters.")
 							});
 	frontendNode->addOption({
 								{QStringLiteral("r"), QStringLiteral("reset")},
@@ -187,9 +188,9 @@ void CliController::list(bool detail)
 	qApp->quit();
 }
 
-void CliController::listRules(bool listShort)
+void CliController::listRules(bool listShort, bool userOnly)
 {
-	qInfo().noquote() << _rules->listRules(listShort);
+	qInfo().noquote() << _rules->listRules(listShort, userOnly);
 	qApp->quit();
 }
 

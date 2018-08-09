@@ -41,7 +41,8 @@ DISTFILES += \
 	README.md \
 	repkg.sh \
 	repkg.hook \
-	completitions/bash/repkg
+	completitions/bash/repkg \
+	completitions/zsh/_repkg
 
 target.path = $$[QT_INSTALL_BINS]
 INSTALLS += target
@@ -52,7 +53,9 @@ script.path = /usr/share/libalpm/scripts
 script.files += repkg.sh
 bashcomp.path = /usr/share/bash-completion/completions
 bashcomp.files += completitions/bash/repkg
-INSTALLS += hook script bashcomp
+zshcomp.path = /usr/share/zsh/site-functions/
+zshcomp.files = completitions/zsh/_repkg
+INSTALLS += hook script bashcomp zshcomp
 
 !ReleaseBuild:!DebugBuild:!system(qpmx -d $$shell_quote($$_PRO_FILE_PWD_) --qmake-run init $$QPMX_EXTRA_OPTIONS $$shell_quote($$QMAKE_QMAKE) $$shell_quote($$OUT_PWD)): error(qpmx initialization failed. Check the compilation log for details.)
 else: include($$OUT_PWD/qpmx_generated.pri)

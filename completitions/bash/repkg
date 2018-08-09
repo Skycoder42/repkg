@@ -33,10 +33,10 @@ function _repkg {
 						optargs="$optargs -d --detail"
 						;;
 					rules)
-						optargs="$optargs -s --short"
+						optargs="$optargs -s --short -u --user"
 						;;
 					frontend)
-						optargs="$optargs -s --set --waved"
+						optargs="$optargs -s --set --waved -r --reset"
 						;;
 				esac
 
@@ -47,8 +47,12 @@ function _repkg {
 							prefix="$(pacman -Qq)"
 							break # break the loop here
 							;;
-						clear|remove)
-							prefix="$($bin rules --short)"
+						clear)
+							prefix="$($bin list)"
+							break # break the loop here
+							;;
+						remove)
+							prefix="$($bin rules --short --user)"
 							break # break the loop here
 							;;
 						*)
