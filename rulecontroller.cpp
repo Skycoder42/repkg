@@ -25,8 +25,7 @@ void RuleController::createRule(const QString &pkg, const QStringList &deps)
 	QFile ruleFile(path.absoluteFilePath(pkg + QStringLiteral(".rule")));
 	if(!ruleFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
 		throw QStringLiteral("Failed to create rule file for %1 with error: %2")
-				.arg(pkg)
-				.arg(ruleFile.errorString());
+				.arg(pkg, ruleFile.errorString());
 	}
 
 	ruleFile.write(deps.join(QStringLiteral(" ")).toUtf8());
@@ -85,11 +84,11 @@ void RuleController::readRules() const
 	_rules.clear();
 	QMultiHash<QString, QString> ruleBase;
 
-	for(auto path : paths) {
+	for(const auto& path : paths) {
 		QDir dir(path);
 		dir.setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::Readable);
 		dir.setNameFilters({QStringLiteral("*.rule")});
-		for(auto fileInfo : dir.entryInfoList()) {
+		for(const auto& fileInfo : dir.entryInfoList()) {
 			auto name = fileInfo.completeBaseName();
 			if(ruleBase.contains(name))
 				continue;
@@ -106,7 +105,7 @@ void RuleController::readRules() const
 			auto pkgs = str.split(QRegularExpression(QStringLiteral("\\s")));
 
 			_ruleInfos.insert(name, fileInfo.absoluteFilePath());
-			for(auto pkg : pkgs)
+			for(const auto& pkg : pkgs)
 				ruleBase.insert(name, pkg);
 		}
 	}

@@ -22,8 +22,7 @@ QDir global::userPath()
 	}
 
 	QDir dir = QStringLiteral("/home/%1/.config/%2/rules")
-			   .arg(QString::fromUtf8(user))
-			   .arg(QCoreApplication::applicationName());
+			   .arg(QString::fromUtf8(user), QCoreApplication::applicationName());
 	dir.mkpath(QStringLiteral("."));
 	if(dir.exists())
 		return dir;

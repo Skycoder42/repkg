@@ -34,8 +34,8 @@ QString PacmanRunner::frontendDescription() const
 {
 	auto fn = frontend();
 	return QStringLiteral("%1 (%2)")
-			.arg(std::get<0>(fn).join(QLatin1Char(' ')))
-			.arg(std::get<1>(fn) ? QStringLiteral("waved") : QStringLiteral("grouped"));
+			.arg(std::get<0>(fn).join(QLatin1Char(' ')),
+				 std::get<1>(fn) ? QStringLiteral("waved") : QStringLiteral("grouped"));
 }
 
 void PacmanRunner::setFrontend(const QStringList &cli, bool waved)
@@ -61,7 +61,7 @@ int PacmanRunner::run(const QList<QStringList> &waves)
 		throw QStringLiteral("Unable to find pacman binary in PATH");
 	proc.setProgram(pacman);
 	QStringList pacArgs {QStringLiteral("-Qi")};
-	for(auto pkgs : waves)
+	for(const auto& pkgs : waves)
 		pacArgs.append(pkgs);
 	proc.setArguments(pacArgs);
 	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
@@ -82,7 +82,7 @@ int PacmanRunner::run(const QList<QStringList> &waves)
 		throw QStringLiteral("Unable to find binary \"%1\" in PATH").arg(bin);
 	cliArgs.append(QStringLiteral("-S"));
 	if(waved) {
-		for(auto pkgs : waves) {
+		for(const auto& pkgs : waves) {
 			auto args = cliArgs;
 			args.append(pkgs);
 			auto res = QProcess::execute(bin, args);
@@ -91,7 +91,7 @@ int PacmanRunner::run(const QList<QStringList> &waves)
 		}
 		return EXIT_SUCCESS;
 	} else {
-		for(auto pkgs : waves)
+		for(const auto& pkgs : waves)
 			cliArgs.append(pkgs);
 		return QProcess::execute(bin, cliArgs);
 	}

@@ -3,11 +3,11 @@ TEMPLATE = app
 QT += core
 QT -= gui
 
-CONFIG += c++11 console warning_clean exceptions
+CONFIG += c++14 console warning_clean exceptions
 CONFIG -= app_bundle
 
 TARGET = repkg
-VERSION = 1.2.3
+VERSION = 1.3.0
 
 RC_ICONS += ./icons/repkg.ico
 QMAKE_TARGET_COMPANY = "Skycoder42"

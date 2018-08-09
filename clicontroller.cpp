@@ -159,7 +159,7 @@ void CliController::create(const QString &pkg, const QStringList &rules)
 
 void CliController::remove(const QStringList &pkgs)
 {
-	for(auto pkg : pkgs)
+	for(const auto &pkg : pkgs)
 		_rules->removeRule(pkg);
 	qInfo() << "Remember to run `sudo repkg update <pkgs>` to remove any already scheduled rebuilds";
 	qApp->quit();

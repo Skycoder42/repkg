@@ -70,7 +70,7 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 		throw QStringLiteral("Must be run as root to update packages!");
 
 	QQueue<QString> pkgQueue;
-	for(auto pkg : pkgs)
+	for(const auto& pkg : pkgs)
 		pkgQueue.enqueue(pkg);
 
 	auto pkgInfos = readPkgs();
@@ -86,7 +86,7 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 		auto matches = rules->analyze(pkg);
 		//add those to the "needs updates" list
 		//and check if they themselves will trigger rebuilds by adding them to the queue
-		for(auto match : matches) {
+		for(const auto& match : matches) {
 			pkgInfos[match].insert(pkg);
 			pkgQueue.enqueue(match);
 			qDebug() << "Rule triggered. Marked"
@@ -100,7 +100,7 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules)
 	}
 
 	//remove all "original" packages from the rebuild list as they have just been built
-	for(auto pkg : pkgs)
+	for(const auto& pkg : pkgs)
 		pkgInfos.remove(pkg);
 
 	//save the infos
@@ -118,7 +118,7 @@ void PkgResolver::clear(const QStringList &pkgs)
 	} else {
 		auto pkgInfos = readPkgs();
 		auto save = false;
-		for(auto pkg : pkgs)
+		for(const auto& pkg : pkgs)
 			save = pkgInfos.remove(pkg) || save;
 		if(save)
 			writePkgs(pkgInfos);
