@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QDir>
 #include <QMap>
+#include <QFileInfo>
 #include <variant>
 #include <optional>
 
@@ -28,9 +29,14 @@ public:
 
 		QString package;
 		RuleScope scope = RuleScope::Any;
-		bool extension = false;
 		Range range;
 		std::optional<int> count;
+	};
+
+	struct RuleSource {
+		bool extension = false;
+		bool isRoot = false;
+		QStringList targets;
 	};
 
 	explicit RuleController(QObject *parent = nullptr);
@@ -38,16 +44,18 @@ public:
 	void createRule(const QString &pkg, const QStringList &deps);
 	void removeRule(const QString &pkg);
 
-	QString listRules(bool pkgOnly, bool userOnly) const;
+	QString listRules(bool pkgOnly, bool userOnly);
 
-	QList<RuleInfo> findRules(const QString &pkg) const;
+	QList<RuleInfo> findRules(const QString &pkg);
 
 private:
-	mutable QMap<QString, std::pair<QStringList, bool>> _ruleInfos;
-	mutable QMultiHash<QString, RuleInfo> _rules;
+	QMap<QString, RuleSource> _ruleSources;
+	QMultiHash<QString, RuleInfo> _rules;
 
-	void readRules() const;
+	void readRules();
+	QList<RuleInfo> readRuleDefinitions(const QFileInfo &fileInfo, RuleSource &srcBase);
 	static void parseScope(RuleInfo &ruleInfo, const QStringRef &scopeStr);
+	static void addRules(QList<RuleInfo> &target, const QList<RuleInfo> &newRules);
 };
 
 #endif // RULECONTROLLER_H

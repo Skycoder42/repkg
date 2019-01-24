@@ -47,52 +47,54 @@ void RuleController::removeRule(const QString &pkg)
 		throw QStringLiteral("Failed to remove rule file for %1").arg(pkg);
 }
 
-QString RuleController::listRules(bool pkgOnly, bool userOnly) const
+QString RuleController::listRules(bool pkgOnly, bool userOnly)
 {
 	if(_rules.isEmpty())
 		readRules();
 
 	if(pkgOnly) {
 		QStringList pkgs;
-		pkgs.reserve(_ruleInfos.size());
-		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
-			if(userOnly && (it->second != isRoot()))
+		pkgs.reserve(_ruleSources.size());
+		for(auto it = _ruleSources.constBegin(); it != _ruleSources.constEnd(); it++) {
+			if(userOnly && (it->isRoot != isRoot()))
 				continue;
 			pkgs.append(it.key());
 		}
 		return pkgs.join(QLatin1Char(' '));
 	} else {
 		auto baselen = 9;
-		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++)
+		for(auto it = _ruleSources.constBegin(); it != _ruleSources.constEnd(); it++)
 			baselen = std::max(baselen, it.key().size() + 2);
 
 		QStringList pkgs;
-		pkgs.reserve(_ruleInfos.size() + 2);
-		pkgs.append(QStringLiteral("%1| Origin | Triggers").arg(QStringLiteral(" Package"), -baselen));
+		pkgs.reserve(_ruleSources.size() + 2);
+		pkgs.append(QStringLiteral("%1| Origin | Ext. | Triggers").arg(QStringLiteral(" Package"), -baselen));
 		pkgs.append(QStringLiteral("-").repeated(baselen) + QLatin1Char('|') +
 					QStringLiteral("-").repeated(8) + QLatin1Char('|') +
-					QStringLiteral("-").repeated(70 - baselen));
+					QStringLiteral("-").repeated(6) + QLatin1Char('|') +
+					QStringLiteral("-").repeated(67 - baselen));
 
-		for(auto it = _ruleInfos.constBegin(); it != _ruleInfos.constEnd(); it++) {
-			if(userOnly && (it->second != isRoot()))
+		for(auto it = _ruleSources.constBegin(); it != _ruleSources.constEnd(); it++) {
+			if(userOnly && (it->isRoot != isRoot()))
 				continue;
-			pkgs.append(QStringLiteral(" %1| %2| %3")
+			pkgs.append(QStringLiteral(" %1| %2| %3| %4")
 						.arg(it.key(), -(baselen - 1))
-						.arg(it->second ? QStringLiteral("System") : QStringLiteral("User"), -7)
-						.arg(it->first.join(QLatin1Char(' '))));
+						.arg(it->isRoot ? QStringLiteral("System") : QStringLiteral("User"), -7)
+						.arg(it->extension ? QStringLiteral("Yes") : QStringLiteral("No"), -5)
+						.arg(it->targets.join(QLatin1Char(' '))));
 		}
 		return pkgs.join(QLatin1Char('\n'));
 	}
 }
 
-QList<RuleController::RuleInfo> RuleController::findRules(const QString &pkg) const
+QList<RuleController::RuleInfo> RuleController::findRules(const QString &pkg)
 {
 	if(_rules.isEmpty())
 		readRules();
 	return _rules.values(pkg);
 }
 
-void RuleController::readRules() const
+void RuleController::readRules()
 {
 	QList<std::pair<QDir, bool>> paths {
 		{userPath(), false},
@@ -100,77 +102,111 @@ void RuleController::readRules() const
 		{systemPath(), true},
 	};
 
-	_ruleInfos.clear();
+	_ruleSources.clear();
 	_rules.clear();
-	QMultiHash<QString, RuleInfo> ruleBase;
+	QHash<QString, std::pair<QList<RuleInfo>, bool>> ruleBase;  // (rules, extension)
+	QHash<QString, std::tuple<QRegularExpression, QList<RuleInfo>, bool>> wildcardRules;  // (pattern, rules, extension)
 
 	for(auto &path : paths) {
 		auto &dir = path.first;
 		dir.setFilter(QDir::Files | QDir::NoDotAndDotDot | QDir::Readable);
 		dir.setNameFilters({QStringLiteral("*.rule")});
 		for(const auto &fileInfo : dir.entryInfoList()) {
+			RuleSource ruleSrc;
 			auto name = fileInfo.completeBaseName();
-			//DEBUG filter out wildcard rules
-			if(name.contains(QLatin1Char('*')) || name.contains(QLatin1Char('?')))
-				continue;
-
+			ruleSrc.isRoot = path.second;
 			// check for extension rules
-			auto extension = false;
 			if(name.startsWith(QLatin1Char('+'))) {
 				name = name.mid(1);
-				extension = true;
+				ruleSrc.extension = true;
 			}
 
-			// skip already handeled rules
-			if(ruleBase.contains(name))
-				continue;
-
-			QFile file{fileInfo.absoluteFilePath()};
-			if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-				qWarning() << "Failed to read file" << file.fileName()
-						   << "with error" << file.errorString();
-				continue;
-			}
-
-			auto str = QString::fromUtf8(file.readAll());
-			file.close();
-			static const QRegularExpression splitRegex{QStringLiteral("\\s+"), QRegularExpression::DontCaptureOption};
-			auto pkgs = str.split(splitRegex, QString::SkipEmptyParts);
-
-			QStringList ruleList;
-			ruleList.reserve(pkgs.size());
-			for(auto pkgInfo : pkgs) { //MAJOR make const & again
-				{
-					//MAJOR compat workaround to filter out old regex syntax
-					static const QRegularExpression pkgCompatRegex{QStringLiteral(R"__(^(.*?)(?:{{(.*)}})?$)__")};
-					const auto compatMatch = pkgCompatRegex.match(pkgInfo);
-					if(compatMatch.hasMatch())
-						pkgInfo = compatMatch.captured(1);
+			// special handling for wildcard rules
+			if(name.contains(QLatin1Char('*')) ||
+			   name.contains(QLatin1Char('?')) ||
+			   (name.contains(QLatin1Char('[')) && name.contains(QLatin1Char(']')))) {
+				auto definitions = readRuleDefinitions(fileInfo, ruleSrc);
+				if(wildcardRules.contains(name)) {
+					auto &entry = wildcardRules[name];
+					if(std::get<2>(entry)) {
+						addRules(std::get<1>(entry), definitions);
+						std::get<2>(entry) = ruleSrc.extension;
+					}
+				} else {
+					QRegularExpression ruleRegex {
+						QRegularExpression::wildcardToRegularExpression(name),
+						QRegularExpression::DontCaptureOption
+					};
+					wildcardRules.insert(name, std::make_tuple(std::move(ruleRegex), std::move(definitions), ruleSrc.extension));
 				}
-
-				static const QRegularExpression pkgInfoRegex{QStringLiteral(R"__(^(.+?)(?:=([\dvsr:]+))?$)__")};
-				auto match = pkgInfoRegex.match(pkgInfo);
-				Q_ASSERT(match.hasMatch());
-				ruleList.append(match.captured(1));
-
-				RuleInfo rule;
-				rule.package = match.captured(1);
-				rule.extension = extension;
-				if(match.capturedLength(2) > 0)
-					parseScope(rule, match.capturedRef(2));
-				ruleBase.insert(name, rule);
+			} else { // normal rules are treated normall
+				// skip already handeled rules
+				if(ruleBase.contains(name))
+					continue;
+				// read rule definitions and add to mapping and rule list
+				ruleBase.insert(name, {readRuleDefinitions(fileInfo, ruleSrc), ruleSrc.extension});
 			}
-			_ruleInfos.insert(name, {ruleList, path.second});
+			_ruleSources.insert(name, ruleSrc);
 		}
 	}
 
-	//invert rules for easier evaluation
+	// TODO find ALL foreign packages and match them against the wildcards to add them if neccessary
+
 	for(auto it = ruleBase.begin(); it != ruleBase.end(); it++) {
-		auto name = it.key();
-		auto &rule = *it;
-		std::swap(name, rule.package);
-		_rules.insert(name, rule);
+		// add regex rules to extensible normal rules
+		if(it->second) {
+			for(const auto &wTpl : qAsConst(wildcardRules)) {
+				if(std::get<0>(wTpl).match(it.key()).hasMatch())
+					addRules(it->first, std::get<1>(wTpl));
+			}
+		}
+
+		//invert rules for easier evaluation
+		for(auto &rule : it->first) {
+			auto name = it.key();
+			std::swap(name, rule.package);
+			_rules.insert(name, rule);
+		}
 	}
+}
+
+QList<RuleController::RuleInfo> RuleController::readRuleDefinitions(const QFileInfo &fileInfo, RuleSource &srcBase)
+{
+	QFile file{fileInfo.absoluteFilePath()};
+	if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+		qWarning() << "Failed to read file" << file.fileName()
+				   << "with error" << file.errorString();
+		return {};
+	}
+
+	auto str = QString::fromUtf8(file.readAll());
+	file.close();
+	static const QRegularExpression splitRegex{QStringLiteral("\\s+"), QRegularExpression::DontCaptureOption};
+	auto pkgs = str.split(splitRegex, QString::SkipEmptyParts);
+
+	QList<RuleInfo> rules;
+	for(auto pkgInfo : pkgs) { //MAJOR make const & again
+		{
+			//MAJOR compat workaround to filter out old regex syntax
+			static const QRegularExpression pkgCompatRegex{QStringLiteral(R"__(^(.*?)(?:{{(.*)}})?$)__")};
+			const auto compatMatch = pkgCompatRegex.match(pkgInfo);
+			if(compatMatch.hasMatch())
+				pkgInfo = compatMatch.captured(1);
+		}
+
+		static const QRegularExpression pkgInfoRegex{QStringLiteral(R"__(^(.+?)(?:=([\dvsr:]+))?$)__")};
+		auto match = pkgInfoRegex.match(pkgInfo);
+		Q_ASSERT(match.hasMatch());
+
+		RuleInfo rule;
+		rule.package = match.captured(1);
+		if(match.capturedLength(2) > 0)
+			parseScope(rule, match.capturedRef(2));
+		rules.append(rule);
+		srcBase.targets.append(rule.package);
+	}
+
+	return rules;
 }
 
 void RuleController::parseScope(RuleInfo &ruleInfo, const QStringRef &scopeStr)
@@ -208,4 +244,9 @@ void RuleController::parseScope(RuleInfo &ruleInfo, const QStringRef &scopeStr)
 			}
 		}
 	}
+}
+
+void RuleController::addRules(QList<RuleController::RuleInfo> &target, const QList<RuleController::RuleInfo> &newRules)
+{
+
 }
