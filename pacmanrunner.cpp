@@ -133,28 +133,27 @@ QString PacmanRunner::readPackageVersion(const QString &pkg)
 		throw QStringLiteral("Failed to get current version of package %1 from pacman").arg(pkg);
 
 	auto match = QRegularExpression {
-		QStringLiteral(R"__(^(?:%1)\s*(.*)$)__").arg(QRegularExpression::escape(pkg)),
-		QRegularExpression::DontAutomaticallyOptimizeOption
-	}.match(QString::fromUtf8(proc.readAllStandardOutput().simplified()));
+		QStringLiteral(R"__(^(?:%1)\s*(.*)$)__")
+		.arg(QRegularExpression::escape(pkg))
+	}.match(QString::fromUtf8(proc.readAllStandardOutput()).simplified());
 	if(!match.hasMatch())
 		throw QStringLiteral("Failed to get current version of package %1 from pacman").arg(pkg);
 	return match.captured(1);
 }
 
-bool PacmanRunner::comparePackageVersion(const QString &vOld, const QString &vNew)
+QStringList PacmanRunner::readForeignPackages()
 {
-	// compare both versions. Only difference matters, not which one is newer or older
 	QProcess proc;
-	initPacman(proc, true);
-	proc.setArguments({vOld, vNew});
+	initPacman(proc);
+	proc.setArguments({QStringLiteral("-Qqm")});
 
-	qDebug() << "Comparing package versions...";
+	qDebug() << "Querying all foreign packages...";
 	proc.start();
 	proc.waitForFinished(-1);
 	if(proc.exitCode() != EXIT_SUCCESS)
-		throw QStringLiteral("Failed to compare versions");
+		throw QStringLiteral("Failed to get foreign packages from pacman");
 
-	return proc.readAllStandardOutput().simplified().toInt() != 0;
+	return QString::fromUtf8(proc.readAllStandardOutput()).simplified().split(QLatin1Char(' '));
 }
 
 void PacmanRunner::initPacman(QProcess &proc, bool asVercmp) const

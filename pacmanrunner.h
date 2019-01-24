@@ -21,7 +21,7 @@ public:
 	int run(const QList<QStringList> &pkgs);
 
 	QString readPackageVersion(const QString &pkg);
-	bool comparePackageVersion(const QString &vOld, const QString &vNew);
+	QStringList readForeignPackages();
 
 private:
 	void initPacman(QProcess &proc, bool asVercmp = false) const;
