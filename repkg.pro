@@ -7,7 +7,7 @@ CONFIG += c++17 console warning_clean exceptions
 CONFIG -= app_bundle
 
 TARGET = repkg
-VERSION = 1.3.0
+VERSION = 1.4.0
 
 RC_ICONS += ./icons/repkg.ico
 QMAKE_TARGET_COMPANY = "Skycoder42"
