@@ -52,10 +52,16 @@ dep-a dep-b
 Add repkg as (optional) dependency, and your good to go.
 
 #### Version Filtering
-If you want the package to only be updated if the change is significant enough (i.e. a major version update), you can do so by adding a version filter regular expression to the dependency. This filter is used to "reduce" the versions before comparing them. For example, assuming `dep-b` has the following version, `1.3.5`. To only update when `dep-b` receives at least a minor update (e.g. to `1.4.0` or `1.5.3`, but also `2.0.0`, ...), the version must be filtered down to these two segments. A possible regex for that would be `^(\d+\.\d+).*$`. Please note that the regex matches the
-whole version string and "returns" the filtered version via the first captured group. For the given example, this would reduce the version to `1.3` for the comparison.
+If you want the package to only be updated if the change is significant enough (i.e. a major version update), you can do so by adding a version filter expression to the dependency. These special filters tell repkg to only compare parts of the version numbers, not the whole number. The general syntax for that is:
+```
+<package>[=<filter>]
+```
+Leaving out the filter means that the package is always rebuilt if the version string changes in any way. Possible filter expressions are:
 
-To add this to the rule, simply add it in double curley braces after the package name:
-```
-dep-a dep-b{{^(\d+\.\d+).*$}}
-```
+- `0`: Only update if the epoche changes. E.g. from `1:2.3.5` to `2:1.0.0`.
+- `v`: Only update if the epoche or the version number itself changes. This *exlcudes* the package revision and possible suffixes. E.g. from `1.2.3` to `1.2.4`
+- `1..*` (any other positive number besides 0): Same as `v`, but limit the version segments to check. E.g. if specifying `1`, Only major version updates (`1.2.3` to `2.0.0`) trigger a rebuild. With `2` this also includes minor versions etc.
+- `s`: Only update if the epoche or the version number itself changes. This *includes* the package revision and possible suffixes. E.g. from `1.2.3-alpha` to `1.2.3`
+- `r`: Always update, even if only the package revision changes. E.g. `1.2.3-1` to `1.2.3-2`
+- `:<offset>[:<length>]`: Do a normal string based comaprison, but only compare a substring of the version number, starting at `offset` and `length` characters long (both must be 0 or positive integers). E.g. `:2:4` on `1.2345.6` will reduce the string to `2345` before comparing.
+- `:<offset>[:<length>]::<filter>`: Same as before, but instead of a string compare, use another filter. Can be any of the above except the two range limiters. E.g. using the filter `:1::v` on `v1.2.3` will reduce the string to `1.2.3` and then do a normal version compare. Without the previous removal of the `v`, a version-based compare would not work for this example.
