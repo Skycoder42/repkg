@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QSettings>
+#include <QVersionNumber>
 
 class PkgResolver : public QObject
 {
@@ -24,6 +25,12 @@ public:
 	void clear(const QStringList &pkgs);
 
 private:
+	struct VersionTuple {
+		int epoche = 0;
+		QVersionNumber version;
+		QString suffix;
+		int revision = 0;
+	};
 	using PkgInfos = QMap<QString, QSet<QString>>; //package -> triggered by
 
 	QSettings *_settings;
@@ -34,6 +41,7 @@ private:
 	QString readVersion();
 
 	bool checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, const QString &target, PacmanRunner *runner);
+	static VersionTuple splitVersion(const QString &version, bool &ok);
 };
 
 #endif // PKGRESOLVER_H

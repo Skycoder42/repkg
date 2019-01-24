@@ -5,14 +5,33 @@
 #include <QHash>
 #include <QDir>
 #include <QMap>
-#include <QRegularExpression>
+#include <variant>
+#include <optional>
 
 class RuleController : public QObject
 {
 	Q_OBJECT
 
 public:
-	using RuleInfo = std::pair<QString, QRegularExpression>;
+	enum class RuleScope {
+		Any,
+		Epoche,
+		Version,
+		Suffix,
+		Revision
+	};
+	Q_ENUM(RuleScope)
+
+	struct RuleInfo {
+		using RangeContent = std::pair<int, std::optional<int>>;
+		using Range = std::optional<RangeContent>; // (offset, limit)
+
+		QString package;
+		RuleScope scope = RuleScope::Any;
+		bool extension = false;
+		Range range;
+		std::optional<int> count;
+	};
 
 	explicit RuleController(QObject *parent = nullptr);
 
@@ -27,8 +46,8 @@ private:
 	mutable QMap<QString, std::pair<QStringList, bool>> _ruleInfos;
 	mutable QMultiHash<QString, RuleInfo> _rules;
 
-
 	void readRules() const;
+	static void parseScope(RuleInfo &ruleInfo, const QStringRef &scopeStr);
 };
 
 #endif // RULECONTROLLER_H

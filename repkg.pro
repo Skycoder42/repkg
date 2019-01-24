@@ -3,7 +3,7 @@ TEMPLATE = app
 QT += core
 QT -= gui
 
-CONFIG += c++14 console warning_clean exceptions
+CONFIG += c++17 console warning_clean exceptions
 CONFIG -= app_bundle
 
 TARGET = repkg
@@ -57,5 +57,5 @@ zshcomp.path = /usr/share/zsh/site-functions/
 zshcomp.files = completitions/zsh/_repkg
 INSTALLS += hook script bashcomp zshcomp
 
-!ReleaseBuild:!DebugBuild:!system(qpmx -d $$shell_quote($$_PRO_FILE_PWD_) --qmake-run init $$QPMX_EXTRA_OPTIONS $$shell_quote($$QMAKE_QMAKE) $$shell_quote($$OUT_PWD)): error(qpmx initialization failed. Check the compilation log for details.)
-else: include($$OUT_PWD/qpmx_generated.pri)
+QDEP_DEPENDS += Skycoder42/QCliParser
+!load(qdep):error("Failed to load qdep feature! Run 'qdep.py prfgen --qmake $$QMAKE_QMAKE' to create it.")

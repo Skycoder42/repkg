@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QQueue>
 #include <QStandardPaths>
+#include <QRegularExpression>
 using namespace global;
 
 PkgResolver::PkgResolver(QObject *parent) :
@@ -88,15 +89,15 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules, Pac
 		//and check if they themselves will trigger rebuilds by adding them to the queue
 		for(const auto& match : matches) {
 			if(checkVersionUpdate(match, pkg, runner)) {
-				pkgInfos[match.first].insert(pkg);
-				pkgQueue.enqueue(match.first);
+				pkgInfos[match.package].insert(pkg);
+				pkgQueue.enqueue(match.package);
 				qDebug() << "Rule triggered. Marked"
-						 << match.first
+						 << match.package
 						 << "for updates because of"
 						 << pkg;
 			} else {
 				qDebug() << "Rule skipped. Did not mark "
-						 << match.first
+						 << match.package
 						 << "for updates because version of"
 						 << pkg
 						 << "did not change significantly";
@@ -165,25 +166,76 @@ bool PkgResolver::checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, co
 	auto newVersion = runner->readPackageVersion(target);
 
 	_settings->beginGroup(QStringLiteral("versions"));
-	_settings->beginGroup(pkgInfo.first);
+	_settings->beginGroup(pkgInfo.package);
 	auto oldVersion = _settings->value(target).toString();
 	_settings->setValue(target, newVersion);
 	_settings->endGroup();
 	_settings->endGroup();
 
-	if(!pkgInfo.second.isValid() || oldVersion.isEmpty())
+	if(oldVersion.isEmpty())
 		return true;
 
-	// filter both versions
-	oldVersion = pkgInfo.second.match(oldVersion).captured(1);
-	newVersion = pkgInfo.second.match(newVersion).captured(1);
-	if(newVersion.isEmpty() || oldVersion.isEmpty()) { // in case of a failed match -> is update
-		qWarning() << "Failed to filter package versions of" << pkgInfo.first
-				   << "for rule of" << target << "- this indicates a broken regex!";
-		return true;
+	// apply filter rule to determine if the version changed
+	// first: filter both versions
+	if(pkgInfo.range) {
+		oldVersion = oldVersion.mid(pkgInfo.range->first, pkgInfo.range->second.value_or(-1));
+		newVersion = newVersion.mid(pkgInfo.range->first, pkgInfo.range->second.value_or(-1));
 	}
+	// second: for any-compares, do so without further processing
+	if(pkgInfo.scope == RuleController::RuleScope::Any)
+		return oldVersion != newVersion;
+	// third: split the version and compare based on scope
+	auto ok = true;
+	const auto oldVTuple = splitVersion(oldVersion, ok);
+	const auto newVTuple = splitVersion(newVersion, ok);
+	if(!ok)
+		return oldVersion != newVersion;
+	switch (pkgInfo.scope) {
+	case RuleController::RuleScope::Revision:
+		if(oldVTuple.revision != newVTuple.revision)
+			return true;
+		Q_FALLTHROUGH();
+	case RuleController::RuleScope::Suffix:
+		if(oldVTuple.suffix != newVTuple.suffix)
+			return true;
+		Q_FALLTHROUGH();
+	case RuleController::RuleScope::Version:
+		if(pkgInfo.count) {
+			if(oldVTuple.version.segments().mid(0, *pkgInfo.count) !=
+			   newVTuple.version.segments().mid(0, *pkgInfo.count))
+				return true;
+		} else {
+			if(oldVTuple.version != newVTuple.version)
+				return true;
+		}
+		Q_FALLTHROUGH();
+	case RuleController::RuleScope::Epoche:
+		return oldVTuple.epoche != newVTuple.epoche;
+	default:
+		Q_UNREACHABLE();
+		return false;
+	}
+}
 
-	qDebug() << "Check versions of" << target << ", comparing"
-			 << oldVersion << "with" << newVersion;
-	return runner->comparePackageVersion(oldVersion, newVersion);
+PkgResolver::VersionTuple PkgResolver::splitVersion(const QString &version, bool &ok)
+{
+	static const QRegularExpression regex{QStringLiteral(R"__(^(?:(\d+):)?(.*?)-(\d+)$)__")};
+	const auto match = regex.match(version);
+	if(match.hasMatch()) {
+		VersionTuple vTuple;
+		if(match.capturedLength(1) > 0)
+			vTuple.epoche = match.capturedRef(1).toInt();
+		int sIndex = 0;
+		vTuple.version = QVersionNumber::fromString(match.capturedView(2), &sIndex);
+		if(sIndex < match.capturedLength(2))
+			vTuple.suffix = match.capturedView(2).mid(sIndex).toString();
+		vTuple.revision = match.capturedRef(3).toInt();
+		return vTuple;
+	} else {
+		qWarning() << "Failed to parse version string"
+				   << version
+				   << "- falling back to basic string comparison!";
+		ok = false;
+		return {};
+	}
 }
