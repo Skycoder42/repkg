@@ -27,7 +27,7 @@ private:
 
 	void rebuild();
 	void update(QStringList pkgs, bool fromStdin);
-	void create(const QString &pkg, const QStringList &rules);
+	void create(const QString &pkg, bool autoDepends, const QStringList &rules);
 	void remove(const QStringList &pkgs);
 	void list(bool detail);
 	void listRules(bool listShort, bool userOnly);

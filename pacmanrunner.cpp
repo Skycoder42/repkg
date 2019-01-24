@@ -156,13 +156,33 @@ QStringList PacmanRunner::readForeignPackages()
 	return QString::fromUtf8(proc.readAllStandardOutput()).simplified().split(QLatin1Char(' '));
 }
 
-void PacmanRunner::initPacman(QProcess &proc, bool asVercmp) const
+QStringList PacmanRunner::listDependencies(const QString &pkg)
 {
-	auto pacman = asVercmp ?
-					  QStandardPaths::findExecutable(QStringLiteral("vercmp")) :
+	QProcess proc;
+	initPacman(proc, true);
+	proc.setArguments({
+						  QStringLiteral("-u"),
+						  QStringLiteral("-d1"),
+						  pkg
+					  });
+
+	qDebug() << "Querying all dependencies of the" << pkg <<  "package...";
+	proc.start();
+	proc.waitForFinished(-1);
+	if(proc.exitCode() != EXIT_SUCCESS)
+		throw QStringLiteral("Failed to get dependencies of %1 from pactree").arg(pkg);
+
+	// skip first element, is always the package itself
+	return QString::fromUtf8(proc.readAllStandardOutput()).simplified().split(QLatin1Char(' ')).mid(1);
+}
+
+void PacmanRunner::initPacman(QProcess &proc, bool asPactree) const
+{
+	auto pacman = asPactree ?
+					  QStandardPaths::findExecutable(QStringLiteral("pactree")) :
 					  QStandardPaths::findExecutable(QStringLiteral("pacman"));
 	if(pacman.isNull())
-		throw QStringLiteral("Unable to find %1 binary in PATH").arg(asVercmp ? QStringLiteral("vercmp") :QStringLiteral("pacman"));
+		throw QStringLiteral("Unable to find %1 binary in PATH").arg(asPactree ? QStringLiteral("vercmp") :QStringLiteral("pacman"));
 	proc.setProgram(pacman);
 	proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
 }

@@ -14,13 +14,16 @@ RuleController::RuleController(PacmanRunner *runner, QObject *parent) :
 	_runner{runner}
 {}
 
-void RuleController::createRule(const QString &pkg, const QStringList &deps)
+void RuleController::createRule(const QString &pkg, bool autoDepends, QStringList deps)
 {
 	QDir path;
 	if(isRoot())
 		path = rootPath();
 	else
 		path = userPath();
+
+	if(autoDepends)
+		deps.append(_runner->listDependencies(pkg));
 
 	QFile ruleFile(path.absoluteFilePath(pkg + QStringLiteral(".rule")));
 	if(!ruleFile.open(QIODevice::WriteOnly | QIODevice::Text)) {

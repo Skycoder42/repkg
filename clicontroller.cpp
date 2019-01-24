@@ -40,7 +40,7 @@ void CliController::run()
 		else if(_parser->enterContext(QStringLiteral("create"))) {
 			if(args.isEmpty())
 				throw tr("You must specify a package to create a rule for");
-			create(args.takeFirst(), args);
+			create(args.takeFirst(), _parser->isSet(QStringLiteral("depends")), args);
 		} else if(_parser->enterContext(QStringLiteral("remove")))
 			remove(args);
 		else if(_parser->enterContext(QStringLiteral("list"))) {
@@ -94,6 +94,10 @@ void CliController::setup()
 						  });
 
 	auto createNode = _parser->addLeafNode(QStringLiteral("create"), QStringLiteral("Create a rule for a package and it's dependencies."));
+	createNode->addOption({
+							  {QStringLiteral("d"), QStringLiteral("depends")},
+							  QStringLiteral("Automatically all direct dependencies of the given package as dependency")
+						  });
 	createNode->addPositionalArgument(QStringLiteral("package"), QStringLiteral("The package to create a rule for."));
 	createNode->addPositionalArgument(QStringLiteral("dependencies"),
 									  QStringLiteral("The packages this one depends on and requires a rebuild for."),
@@ -162,9 +166,9 @@ void CliController::update(QStringList pkgs, bool fromStdin)
 	qApp->quit();
 }
 
-void CliController::create(const QString &pkg, const QStringList &rules)
+void CliController::create(const QString &pkg, bool autoDepends, const QStringList &rules)
 {
-	_rules->createRule(pkg, rules);
+	_rules->createRule(pkg, autoDepends, rules);
 	qApp->quit();
 }
 

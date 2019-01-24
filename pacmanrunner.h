@@ -22,9 +22,10 @@ public:
 
 	QString readPackageVersion(const QString &pkg);
 	QStringList readForeignPackages();
+	QStringList listDependencies(const QString &pkg);
 
 private:
-	void initPacman(QProcess &proc, bool asVercmp = false) const;
+	void initPacman(QProcess &proc, bool asPactree = false) const;
 };
 
 #endif // PACMANRUNNER_H

@@ -43,7 +43,7 @@ public:
 
 	explicit RuleController(PacmanRunner *runner, QObject *parent = nullptr);
 
-	void createRule(const QString &pkg, const QStringList &deps);
+	void createRule(const QString &pkg, bool autoDepends, QStringList deps);
 	void removeRule(const QString &pkg);
 
 	QString listRules(bool pkgOnly, bool userOnly);
