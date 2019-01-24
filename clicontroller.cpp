@@ -8,10 +8,10 @@ bool CliController::_verbose = false;
 
 CliController::CliController(QObject *parent) :
 	QObject(parent),
-	_parser(new QCliParser()),
-	_rules(new RuleController(this)),
-	_resolver(new PkgResolver(this)),
-	_runner(new PacmanRunner(this))
+	_parser{new QCliParser{}},
+	_runner{new PacmanRunner{this}},
+	_rules{new RuleController{_runner, this}},
+	_resolver{new PkgResolver{_runner, _rules, this}}
 {}
 
 void CliController::parseArguments(const QCoreApplication &app)
@@ -158,7 +158,7 @@ void CliController::update(QStringList pkgs, bool fromStdin)
 		in.open(stdin, QIODevice::ReadOnly);
 		pkgs = QString::fromUtf8(in.readAll().simplified()).split(QLatin1Char(' '), QString::SkipEmptyParts);
 	}
-	_resolver->updatePkgs(pkgs, _rules, _runner);
+	_resolver->updatePkgs(pkgs);
 	qApp->quit();
 }
 

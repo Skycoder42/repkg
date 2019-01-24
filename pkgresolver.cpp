@@ -8,11 +8,15 @@
 #include <QRegularExpression>
 using namespace global;
 
-PkgResolver::PkgResolver(QObject *parent) :
-	QObject(parent),
-	_settings(new QSettings(rootPath().absoluteFilePath(QStringLiteral("../state.conf")),
-							QSettings::IniFormat,
-							this))
+PkgResolver::PkgResolver(PacmanRunner *runner, RuleController *controller, QObject *parent) :
+	QObject{parent},
+	_settings{new QSettings{
+		rootPath().absoluteFilePath(QStringLiteral("../state.conf")),
+		QSettings::IniFormat,
+		this
+	}},
+	_runner{runner},
+	_controller{controller}
 {}
 
 QStringList PkgResolver::listPkgs() const
@@ -65,7 +69,7 @@ QList<QStringList> PkgResolver::listPkgWaves() const
 	return waves;
 }
 
-void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules, PacmanRunner *runner)
+void PkgResolver::updatePkgs(const QStringList &pkgs)
 {
 	if(!isRoot())
 		throw QStringLiteral("Must be run as root to update packages!");
@@ -84,11 +88,11 @@ void PkgResolver::updatePkgs(const QStringList &pkgs, RuleController *rules, Pac
 			continue;
 
 		//check if packages need updates
-		auto matches = rules->findRules(pkg);
+		auto matches = _controller->findRules(pkg);
 		//add those to the "needs updates" list
 		//and check if they themselves will trigger rebuilds by adding them to the queue
 		for(const auto& match : matches) {
-			if(checkVersionUpdate(match, pkg, runner)) {
+			if(checkVersionUpdate(match, pkg)) {
 				pkgInfos[match.package].insert(pkg);
 				pkgQueue.enqueue(match.package);
 				qDebug() << "Rule triggered. Marked"
@@ -161,9 +165,9 @@ void PkgResolver::writePkgs(const PkgInfos &pkgInfos)
 	_settings->endArray();
 }
 
-bool PkgResolver::checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, const QString &target, PacmanRunner *runner)
+bool PkgResolver::checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, const QString &target)
 {
-	auto newVersion = runner->readPackageVersion(target);
+	auto newVersion = _runner->readPackageVersion(target);
 
 	_settings->beginGroup(QStringLiteral("versions"));
 	_settings->beginGroup(pkgInfo.package);
@@ -219,7 +223,7 @@ bool PkgResolver::checkVersionUpdate(const RuleController::RuleInfo &pkgInfo, co
 
 PkgResolver::VersionTuple PkgResolver::splitVersion(const QString &version, bool &ok)
 {
-	static const QRegularExpression regex{QStringLiteral(R"__(^(?:(\d+):)?(.*?)-(\d+)$)__")};
+	static const QRegularExpression regex{QStringLiteral(R"__(^(?:(\d+):)?(.*)-([\d\.]+)$)__")};
 	const auto match = regex.match(version);
 	if(match.hasMatch()) {
 		VersionTuple vTuple;
@@ -229,7 +233,7 @@ PkgResolver::VersionTuple PkgResolver::splitVersion(const QString &version, bool
 		vTuple.version = QVersionNumber::fromString(match.capturedView(2), &sIndex);
 		if(sIndex < match.capturedLength(2))
 			vTuple.suffix = match.capturedView(2).mid(sIndex).toString();
-		vTuple.revision = match.capturedRef(3).toInt();
+		vTuple.revision = QVersionNumber::fromString(match.capturedView(3));
 		return vTuple;
 	} else {
 		qWarning() << "Failed to parse version string"

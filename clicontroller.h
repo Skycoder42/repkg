@@ -40,9 +40,9 @@ private:
 
 	QScopedPointer<QCliParser> _parser;
 
+	PacmanRunner *_runner;
 	RuleController *_rules;
 	PkgResolver *_resolver;
-	PacmanRunner *_runner;
 
 	static bool _verbose;
 };

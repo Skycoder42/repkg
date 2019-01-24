@@ -9,8 +9,9 @@
 #include <QDebug>
 using namespace global;
 
-RuleController::RuleController(QObject *parent) :
-	QObject{parent}
+RuleController::RuleController(PacmanRunner *runner, QObject *parent) :
+	QObject{parent},
+	_runner{runner}
 {}
 
 void RuleController::createRule(const QString &pkg, const QStringList &deps)
@@ -150,7 +151,19 @@ void RuleController::readRules()
 		}
 	}
 
-	// TODO find ALL foreign packages and match them against the wildcards to add them if neccessary
+	// find ALL foreign packages and match them against the wildcards to add them if neccessary
+	if(!wildcardRules.isEmpty()) {
+		for(const auto &pkg : _runner->readForeignPackages()) {
+			// skip already existing rules
+			if(ruleBase.contains(pkg))
+				continue;
+			// match againts wildcards
+			for(const auto &wTpl : qAsConst(wildcardRules)) {
+				if(std::get<0>(wTpl).match(pkg).hasMatch())
+					ruleBase.insert(pkg, {std::get<1>(wTpl), std::get<2>(wTpl)});
+			}
+		}
+	}
 
 	for(auto it = ruleBase.begin(); it != ruleBase.end(); it++) {
 		// add regex rules to extensible normal rules
@@ -248,5 +261,13 @@ void RuleController::parseScope(RuleInfo &ruleInfo, const QStringRef &scopeStr)
 
 void RuleController::addRules(QList<RuleController::RuleInfo> &target, const QList<RuleController::RuleInfo> &newRules)
 {
-
+	const auto begin = target.begin();
+	const auto end = target.end();
+	for(const auto &rule : newRules) {
+		auto fIndex = std::find_if(begin, end, [rule](const RuleInfo &tRule){
+			return rule.package == tRule.package;
+		});
+		if(fIndex == target.end())
+			target.append(rule);
+	}
 }

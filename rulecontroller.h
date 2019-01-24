@@ -9,6 +9,8 @@
 #include <variant>
 #include <optional>
 
+#include "pacmanrunner.h"
+
 class RuleController : public QObject
 {
 	Q_OBJECT
@@ -39,7 +41,7 @@ public:
 		QStringList targets;
 	};
 
-	explicit RuleController(QObject *parent = nullptr);
+	explicit RuleController(PacmanRunner *runner, QObject *parent = nullptr);
 
 	void createRule(const QString &pkg, const QStringList &deps);
 	void removeRule(const QString &pkg);
@@ -49,6 +51,7 @@ public:
 	QList<RuleInfo> findRules(const QString &pkg);
 
 private:
+	PacmanRunner *_runner;
 	QMap<QString, RuleSource> _ruleSources;
 	QMultiHash<QString, RuleInfo> _rules;
 
