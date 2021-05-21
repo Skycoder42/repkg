@@ -17,7 +17,7 @@ The general idea is: For an AUR package foo, that depends on bar, you always wan
 	- allows "waved" rebuilds for frontends that are unable to correctly order packages for the rebuild
 
 ## Installation
-The tool is provides as AUR package: [repkg](https://aur.archlinux.org/packages/repkg)
+The tool is provided as AUR package: [repkg](https://aur.archlinux.org/packages/repkg)
 
 This repository also has a sample repkg rule for itself.
 
